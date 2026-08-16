@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: glaze-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: glaze
+      POSTGRES_PASSWORD: glaze
+      POSTGRES_DB: glaze_app
+    ports:
+      # 5435 on the host: 5432 is the native postgres service, 5433 and 5434 are
+      # already taken by other projects' containers.
+      - "5435:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glaze -d glaze_app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pg_data:
+    # Compose creates this on first `up`. The POSTGRES_* values above only apply
+    # while the volume is empty — Postgres ignores them on every later start, so
+    # changing the user or database name means recreating the volume
+    # (`docker compose down -v`), not just editing this file.
+    name: glaze_pg_data

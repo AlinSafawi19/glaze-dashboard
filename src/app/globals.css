@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+/*
+ * The dashboard shares the storefront's identity: the same palette, the same
+ * Clash Display / Inter pairing, the same square corners. It is the back of
+ * the same shop, so it should not look like a different product.
+ *
+ * The brand colours below are copied verbatim from the storefront's
+ * globals.css. The `--color-*` names after them are semantic aliases pointing
+ * at those same values, so components read as "surface" and "ink" rather than
+ * repeating "caledon" and "black" everywhere.
+ */
+@theme {
+  /* ── Brand palette, identical to the storefront ── */
+  --color-black: #000000;
+  --color-white: #ffffff;
+  --color-brown: #4a2b39;
+  --color-plum: #7b3a56;
+  --color-accent: #f5b7cf;
+  --color-berry: #f09ec0;
+  --color-blush: #f7d9e5;
+  --color-beige: #d8aebd;
+  --color-caledon: #fdf4f8;
+  --color-warm: #fbf0f4;
+  --color-dusty: #f6e6ec;
+  --color-lavender: #fef7ff;
+  --color-error: #ff2244;
+
+  /* ── Semantic aliases used by the dashboard chrome ── */
+  --color-paper: var(--color-caledon);
+  --color-surface: var(--color-white);
+  --color-ink: var(--color-black);
+  --color-muted: var(--color-brown);
+  --color-line: var(--color-beige);
+  --color-accent-soft: var(--color-dusty);
+
+  --color-danger: var(--color-error);
+  --color-danger-soft: #ffe8ec;
+  --color-success: #2f6b4f;
+  --color-success-soft: #e6f2ec;
+  --color-warn: var(--color-plum);
+  --color-warn-soft: var(--color-blush);
+
+  --font-clash: "Clash Display", sans-serif;
+  --font-inter: var(--font-inter-loaded), "Inter", sans-serif;
+  --font-sans: var(--font-inter);
+
+  --breakpoint-tablet: 810px;
+  --breakpoint-desktop: 1200px;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-color: var(--color-line);
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-inter);
+    font-weight: 300;
+    overflow-x: clip;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Storefront headings are Clash Display, medium, uppercase — carried over so
+   * the two surfaces read as one brand.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  legend {
+    font-family: var(--font-clash);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: normal;
+    line-height: 1.4;
+    font-feature-settings: "calt" 1, "liga" 1, "dlig" 0;
+  }
+
+  /* Form controls inherit Inter rather than the browser default. */
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  .clash-features {
+    font-feature-settings: "calt" 1, "liga" 1, "dlig" 0;
+  }
+
+  /* Labels, buttons and table headers, matching the storefront's SubtitleSm. */
+  .label-sm {
+    font-family: var(--font-clash);
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 12px;
+    line-height: 1.4;
+    font-feature-settings: "calt" 1, "liga" 1, "dlig" 0;
+  }
+}
+
+/*
+ * Utility-page content, rendered here the way the storefront's
+ * `.policy-richtext` renders it — so the preview matches the live page.
+ */
+.prose-glaze {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+.prose-glaze h5 {
+  font-family: var(--font-clash);
+  font-weight: 500;
+  text-transform: uppercase;
+  line-height: 1.4;
+  color: var(--color-black);
+  font-size: 20px;
+}
+
+.prose-glaze p,
+.prose-glaze li,
+.prose-glaze li p {
+  font-family: var(--font-inter);
+  font-weight: 300;
+  color: var(--color-black);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.prose-glaze ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prose-glaze a {
+  color: var(--color-plum);
+  text-decoration: underline;
+}

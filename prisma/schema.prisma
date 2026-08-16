@@ -1,0 +1,445 @@
+// Glaze — dedicated store database.
+//
+// This replaces the generic Canopy CMS backing (a `fields` JSON definition plus
+// an untyped `values` blob per entry) with real tables. The collections, field
+// names and option lists are the ones the storefront already ships against, so
+// the public API can keep emitting the exact same JSON shape.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = []
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Catalogue
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A brand is just a name the storefront filters and indexes by — Canopy's
+/// "Description" and "Image" fields went unused by every screen, so they are
+/// not carried over.
+model Brand {
+  id         String    @id @default(cuid())
+  /// Canopy "Slug"
+  slug       String    @unique @db.VarChar(120)
+  /// Canopy "Title"
+  title      String    @db.VarChar(160)
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  products Product[]
+
+  @@index([archivedAt])
+  @@index([sortIndex])
+}
+
+model Category {
+  id         String    @id @default(cuid())
+  /// Canopy "Slug"
+  slug       String    @unique @db.VarChar(120)
+  /// Canopy "Title"
+  title      String    @db.VarChar(160)
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  products Product[]
+
+  @@index([archivedAt])
+  @@index([sortIndex])
+}
+
+/// Like a brand, a collection is a name products are grouped under. The old
+/// CMS also carried a tagline, two images and a button — none of which the
+/// storefront needs, so they are not carried over.
+model Collection {
+  id         String    @id @default(cuid())
+  /// Canopy "Slug"
+  slug       String    @unique @db.VarChar(120)
+  /// Canopy "Title"
+  title      String    @db.VarChar(160)
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  products Product[]
+
+  @@index([archivedAt])
+  @@index([sortIndex])
+}
+
+model SkinType {
+  id         String    @id @default(cuid())
+  /// Canopy "Slug"
+  slug       String    @unique @db.VarChar(120)
+  /// Canopy "Title"
+  title      String    @db.VarChar(160)
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  products ProductSkinType[]
+
+  @@index([archivedAt])
+  @@index([sortIndex])
+}
+
+model Product {
+  id             String     @id @default(cuid())
+  /// Canopy "Slug"
+  slug           String     @unique @db.VarChar(160)
+  /// Canopy "Title"
+  title          String     @db.VarChar(200)
+  /// Canopy "Cover img 1"
+  coverImage     String?    @db.VarChar(1000)
+  /// Canopy "Img 2"
+  image2         String?    @db.VarChar(1000)
+  /// Canopy "Img 3"
+  image3         String?    @db.VarChar(1000)
+  /// Canopy "Img 4"
+  image4         String?    @db.VarChar(1000)
+  /// Canopy "Price" — money, so fixed precision rather than a float.
+  price          Decimal    @default(0) @db.Decimal(10, 2)
+  /// Canopy "Discount" — a whole percentage off, 0–100.
+  discount       Int        @default(0)
+  /// Canopy "SKU"
+  sku            String?    @db.VarChar(60)
+  /// Canopy "Size" — was a three-option enum; free text so the client can add a
+  /// new volume from the dashboard without a migration.
+  size           String?    @db.VarChar(120)
+  /// Canopy "Key Ingredients"
+  keyIngredients String?    @db.VarChar(500)
+  /// Canopy "Description"
+  description    String?    @db.Text
+
+  /// Canopy's "Sales type" was one enum with three options. Two of them are
+  /// editorial choices and stay as flags; "Best seller" is earned, so the API
+  /// derives it from order volume rather than storing it.
+  isNewIn   Boolean @default(false)
+  isLimited Boolean @default(false)
+
+  brandId      String?
+  brand        Brand?      @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  categoryId   String?
+  category     Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  /// Canopy "Skin Type" — the storefront filter already reads this as a list,
+  /// so it is many-to-many rather than a single relation.
+  skinTypes ProductSkinType[]
+
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  wishlistedBy WishlistItem[]
+
+  @@index([archivedAt])
+  @@index([sortIndex])
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([collectionId])
+}
+
+model ProductSkinType {
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  skinTypeId String
+  skinType   SkinType @relation(fields: [skinTypeId], references: [id], onDelete: Cascade)
+
+  @@id([productId, skinTypeId])
+  @@index([skinTypeId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Editorial
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One cell of the scrolling banner under the home page hero. Canopy had no
+/// equivalent — the storefront hard-coded the four strings — so this is a new
+/// table rather than a carry-over.
+///
+/// There is no body and no link: the banner renders each row's title and
+/// nothing else, in `sortIndex` order, which is the order they were added.
+model TickerItem {
+  id String @id @default(cuid())
+  /// Not shown anywhere on the storefront, but kept so this row is addressable
+  /// the same way every other editable list is.
+  slug String @unique @db.VarChar(120)
+  /// The text itself. Short by design — a long line reads as a sentence
+  /// scrolling past rather than as a banner.
+  title      String    @db.VarChar(60)
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  @@index([archivedAt])
+  @@index([sortIndex])
+}
+
+model UtilityPage {
+  id         String    @id @default(cuid())
+  /// Canopy "Slug"
+  slug       String    @unique @db.VarChar(120)
+  /// Canopy "Title"
+  title      String    @db.VarChar(200)
+  /// Canopy "Content" — sanitised HTML from the dashboard's rich text editor.
+  content    String    @default("") @db.Text
+  sortIndex  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  @@index([archivedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Orders
+//
+// Canopy never had an `orders` collection — the storefront checkout POSTs to
+// one that 404s. These tables are the real thing: a header row plus a line per
+// item, with the price captured at purchase time so a later price edit does not
+// rewrite history.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  PENDING   @map("Pending")
+  CONFIRMED @map("Confirmed")
+  SHIPPED   @map("Shipped")
+  DELIVERED @map("Delivered")
+  CANCELLED @map("Cancelled")
+}
+
+model Order {
+  id     String @id @default(cuid())
+  /// Short human-readable reference the client reads out on the phone.
+  number Int    @unique @default(autoincrement())
+
+  /// Canopy-shaped checkout payload fields.
+  name    String  @db.VarChar(160)
+  phone   String  @db.VarChar(60)
+  address String  @db.VarChar(500)
+  city    String  @db.VarChar(120)
+  notes   String? @db.VarChar(2000)
+  payment String  @default("Cash on delivery") @db.VarChar(60)
+
+  /// Order total in store currency, frozen at checkout.
+  total  Decimal     @db.Decimal(10, 2)
+  status OrderStatus @default(PENDING)
+
+  /// Set when the shopper was signed in. Guest checkout stays open, so this is
+  /// optional — and it survives the account being deleted, because the order's
+  /// own name/phone/address columns are what the courier actually needs.
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  items OrderItem[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  archivedAt DateTime?
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([customerId, createdAt])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Nulled rather than cascaded if the product is later deleted — the order
+  /// still has to read back correctly.
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  /// Snapshot of what was bought, independent of later catalogue edits.
+  slug      String  @db.VarChar(160)
+  title     String  @db.VarChar(200)
+  unitPrice Decimal @db.Decimal(10, 2)
+  quantity  Int     @default(1)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customers
+//
+// Shoppers with an account on the storefront. Kept entirely separate from
+// `User`, which is dashboard staff: the two never share a login, a session
+// table or a password policy, and conflating them is how a customer ends up
+// able to reach an admin screen.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Customer {
+  id           String    @id @default(cuid())
+  email        String    @unique @db.VarChar(255)
+  name         String    @db.VarChar(160)
+  passwordHash String
+  phone        String?   @db.VarChar(60)
+
+  /// Prefills checkout. The order keeps its own copy, so editing these later
+  /// never rewrites where a past order was sent.
+  address String? @db.VarChar(500)
+  city    String? @db.VarChar(120)
+
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  /// Archiving blocks sign-in and revokes every session, without losing the
+  /// order history attached to the account.
+  archivedAt  DateTime?
+
+  orders   Order[]
+  sessions CustomerSession[]
+  cart     CartItem[]
+  wishlist WishlistItem[]
+
+  @@index([archivedAt])
+  @@index([createdAt])
+}
+
+/**
+ * A signed-in shopper's basket, so it survives clearing the browser and follows
+ * them between devices. Signed-out shoppers keep theirs in localStorage; the
+ * two are merged on sign-in.
+ */
+model CartItem {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  /// Cascades: a product that no longer exists cannot stay in a basket.
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity   Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, productId])
+  @@index([customerId])
+  @@index([productId])
+}
+
+model WishlistItem {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([customerId])
+  @@index([productId])
+}
+
+model CustomerSession {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  /// Only the hash is stored; the raw token lives in the storefront's own
+  /// httpOnly cookie and is never readable by browser JavaScript.
+  tokenHash  String   @unique
+  ipAddress  String?  @db.VarChar(60)
+  userAgent  String?  @db.VarChar(500)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  @@index([customerId])
+  @@index([expiresAt])
+}
+
+/**
+ * Dashboard notifications — currently only "an order came in", but typed so
+ * later events (low stock, a change request) slot in without a migration.
+ *
+ * Not per-user: this is a single shop with a shared inbox, so a notification
+ * read by one member of staff is read for everyone.
+ */
+model Notification {
+  id         String    @id @default(cuid())
+  type       String    @db.VarChar(40)
+  title      String    @db.VarChar(200)
+  body       String?   @db.VarChar(500)
+  /// The row the notification points at, e.g. an order id.
+  resourceId String?
+  href       String?   @db.VarChar(300)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([readAt, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Access
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  OWNER
+  STAFF
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique @db.VarChar(255)
+  name         String    @db.VarChar(120)
+  passwordHash String
+  role         UserRole  @default(STAFF)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  archivedAt   DateTime?
+
+  sessions Session[]
+
+  @@index([archivedAt])
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash      String   @unique
+  ipAddress      String?  @db.VarChar(60)
+  userAgent      String?  @db.VarChar(500)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now()) @updatedAt
+  revokedAt      DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Bearer keys the storefront uses against /api/v1. Only the hash is stored.
+model ApiKey {
+  id         String    @id @default(cuid())
+  name       String    @db.VarChar(120)
+  keyHash    String    @unique
+  keyPrefix  String    @db.VarChar(24)
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+
+  @@index([keyHash])
+}
+
