@@ -18,6 +18,14 @@ export interface SimpleDelegate {
     orderBy: { sortIndex: "desc" };
     select: { sortIndex: true };
   }): Promise<{ sortIndex: number } | null>;
+  /** Title lookup — how the importer finds the row a spreadsheet means. */
+  findFirst(args: {
+    where: {
+      title: { equals: string; mode: "insensitive" };
+      archivedAt: null;
+    };
+    select: { id: true };
+  }): Promise<{ id: string } | null>;
   findUnique(args: {
     where: { id: string } | { slug: string };
     select: { id?: true; archivedAt?: true };

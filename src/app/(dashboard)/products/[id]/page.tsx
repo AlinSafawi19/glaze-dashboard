@@ -20,7 +20,10 @@ export default async function EditProductPage({
 
   return (
     <>
-      <PageHeader title={product.title} subtitle={`/products/${product.slug}`} />
+      <PageHeader
+        title={product.title}
+        subtitle={`/products/${product.slug}${product.sku ? ` · SKU ${product.sku}` : ""}`}
+      />
       <ProductForm
         action={updateProduct.bind(null, id)}
         values={product}

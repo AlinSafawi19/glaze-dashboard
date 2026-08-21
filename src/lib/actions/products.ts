@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireUserForAction } from "@/lib/dal";
+import { nextSku } from "@/lib/sku";
 import { uniqueSlug } from "@/lib/slug";
 import type { FormState } from "@/lib/actions/resources";
 
@@ -27,8 +28,8 @@ function relation(formData: FormData, key: string): string | null {
   return value === "" ? null : value;
 }
 
-/** Everything except the slug, which is derived once at creation. */
-type ProductFields = Omit<Prisma.ProductUncheckedCreateInput, "slug">;
+/** Everything except the slug and the SKU, both issued once at creation. */
+type ProductFields = Omit<Prisma.ProductUncheckedCreateInput, "slug" | "sku">;
 
 type Parsed =
   | { ok: true; data: ProductFields; skinTypeIds: string[] }
@@ -65,7 +66,6 @@ function parse(formData: FormData): Parsed {
       image4: optional(formData, "image4"),
       price: price.toFixed(2),
       discount,
-      sku: optional(formData, "sku"),
       size: optional(formData, "size"),
       keyIngredients: optional(formData, "keyIngredients"),
       description: optional(formData, "description"),
@@ -103,6 +103,7 @@ export async function createProduct(
       data: {
         ...parsed.data,
         slug: await uniqueSlug("product", parsed.data.title),
+        sku: await nextSku(),
         sortIndex: (last?.sortIndex ?? -1) + 1,
         skinTypes: {
           create: parsed.skinTypeIds.map((skinTypeId) => ({ skinTypeId })),
@@ -134,7 +135,7 @@ export async function updateProduct(
   // would still reach this action, so the rule is enforced here too.
   const existing = await prisma.product.findUnique({
     where: { id },
-    select: { archivedAt: true },
+    select: { archivedAt: true, sku: true },
   });
   if (!existing) return { error: "That product no longer exists." };
   if (existing.archivedAt) {
@@ -146,8 +147,12 @@ export async function updateProduct(
     // never breaks its storefront link or the slugs saved in shoppers' carts.
     // Skin types are replaced wholesale — simpler and cheaper than diffing a
     // handful of rows, and it keeps the join table honest.
+    // A product created before SKUs were issued picks one up on its next save;
+    // one that already has a code keeps it, because paperwork quotes it.
+    const data = existing.sku ? parsed.data : { ...parsed.data, sku: await nextSku() };
+
     await prisma.$transaction([
-      prisma.product.update({ where: { id }, data: parsed.data }),
+      prisma.product.update({ where: { id }, data }),
       prisma.productSkinType.deleteMany({ where: { productId: id } }),
       prisma.productSkinType.createMany({
         data: parsed.skinTypeIds.map((skinTypeId) => ({ productId: id, skinTypeId })),

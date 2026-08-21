@@ -77,7 +77,7 @@ export default async function ProductsPage({
               info={{
                 key: TRANSFERS.products.key,
                 label: TRANSFERS.products.label,
-                headers: TRANSFERS.products.headers,
+                headers: TRANSFERS.products.importHeaders,
                 notes: TRANSFERS.products.notes,
               }}
             />

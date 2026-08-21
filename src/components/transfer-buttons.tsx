@@ -11,6 +11,7 @@ import { runImport, type ImportState } from "@/lib/actions/transfer";
 export interface TransferInfo {
   key: string;
   label: string;
+  /** The columns an import file may carry — never the generated Slug. */
   headers: string[];
   notes: string[];
 }
@@ -60,7 +61,7 @@ function ImportDialog({ info, onClose }: { info: TransferInfo; onClose: () => vo
   function accept(list: FileList | null) {
     const next = list?.[0];
     if (!next) return;
-    if (!/\.csv$/i.test(next.name)) return;
+    if (!/\.(csv|xlsx)$/i.test(next.name)) return;
 
     const transfer = new DataTransfer();
     transfer.items.add(next);
@@ -75,7 +76,7 @@ function ImportDialog({ info, onClose }: { info: TransferInfo; onClose: () => vo
       open
       onClose={() => !pending && onClose()}
       title={`Import ${info.label.toLowerCase()}`}
-      description="Upload a CSV. Rows whose slug already exists are updated rather than duplicated."
+      description="Upload the exported Excel file, or a CSV. Rows whose title already exists are updated rather than duplicated."
       width="max-w-xl"
       footer={
         done ? (
@@ -166,7 +167,7 @@ function ImportDialog({ info, onClose }: { info: TransferInfo; onClose: () => vo
             ) : (
               <>
                 <p className="font-inter text-[14px] text-black">
-                  Drop a CSV here, or click to browse
+                  Drop an .xlsx or .csv here, or click to browse
                 </p>
                 <p className="font-inter text-[12px] font-light text-brown">
                   Up to 2 MB
@@ -178,7 +179,7 @@ function ImportDialog({ info, onClose }: { info: TransferInfo; onClose: () => vo
               ref={input}
               type="file"
               name="file"
-              accept=".csv,text/csv"
+              accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="hidden"
               onChange={(event) => accept(event.target.files)}
             />

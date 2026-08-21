@@ -84,7 +84,7 @@ export async function ResourceListPage({
   // Utility pages hold long-form HTML, which does not belong in a spreadsheet.
   const spec = TRANSFERS[key as TransferKey];
   const transfer = spec
-    ? { key: spec.key, label: spec.label, headers: spec.headers, notes: spec.notes }
+    ? { key: spec.key, label: spec.label, headers: spec.importHeaders, notes: spec.notes }
     : null;
 
   return (

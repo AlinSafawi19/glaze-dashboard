@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 
-import { fromCsv } from "@/lib/csv";
+import { fromCsv, type ParsedCsv } from "@/lib/csv";
 import { requireUserForAction } from "@/lib/dal";
 import { importCsv, TRANSFERS, type ImportResult, type TransferKey } from "@/lib/transfer";
+import { fromXlsx } from "@/lib/xlsx";
 
 export interface ImportState {
   error?: string;
@@ -25,20 +26,27 @@ export async function runImport(
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return { error: "Choose a CSV file first." };
+    return { error: "Choose a file first." };
   }
   if (file.size > MAX_BYTES) {
     return { error: "That file is larger than 2 MB. Split it and import in parts." };
   }
 
-  let text: string;
+  let parsed: ParsedCsv;
   try {
-    text = await file.text();
-  } catch {
-    return { error: "That file could not be read." };
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    // Every .xlsx is a zip, and every zip starts "PK" — a surer test than the
+    // file's name, which is whatever the client's machine decided to call it.
+    const isWorkbook = bytes[0] === 0x50 && bytes[1] === 0x4b;
+    parsed = isWorkbook
+      ? fromXlsx(bytes)
+      : fromCsv(new TextDecoder().decode(bytes));
+  } catch (error) {
+    console.error("[import parse]", error);
+    return { error: "That file could not be read. Save it as .xlsx or .csv and try again." };
   }
 
-  const { headers, rows } = fromCsv(text);
+  const { headers, rows } = parsed;
   if (headers.length === 0) {
     return { error: "That file has no header row." };
   }

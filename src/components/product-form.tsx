@@ -22,7 +22,6 @@ export interface ProductValues {
   image4: string;
   price: string;
   discount: string;
-  sku: string;
   size: string;
   keyIngredients: string;
   description: string;
@@ -42,7 +41,6 @@ export const EMPTY_PRODUCT: ProductValues = {
   image4: "",
   price: "0",
   discount: "0",
-  sku: "",
   size: "",
   keyIngredients: "",
   description: "",
@@ -239,15 +237,6 @@ export function ProductForm({
           <Card className="flex flex-col gap-5 p-6">
             <SectionHeading>Details</SectionHeading>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="SKU">
-                <input
-                  name="sku"
-                  className={INPUT_CLASS}
-                  defaultValue={values.sku}
-                  placeholder="15509"
-                  maxLength={60}
-                />
-              </Field>
               <Field label="Size" hint="Free text — start typing to reuse an existing one.">
                 <input
                   name="size"
