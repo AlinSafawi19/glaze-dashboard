@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ActionButton } from "@/components/confirm-button";
+import { ClickableCopyableText } from "@/components/text";
 import { Badge, Card, PageHeader, Table, Td, Th } from "@/components/ui";
 import { revokeApiKey } from "@/lib/actions/api-keys";
 import { requireUser } from "@/lib/dal";
@@ -18,6 +20,13 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 export default async function SettingsPage() {
   const user = await requireUser();
   const isOwner = user.role === "OWNER";
+
+  // Not on the session user, which every page in the app carries: this is the
+  // one screen that shows it, so it is read here rather than on every request.
+  const { emailVerifiedAt } = await prisma.user.findUniqueOrThrow({
+    where: { id: user.id },
+    select: { emailVerifiedAt: true },
+  });
 
   const keys = isOwner
     ? await prisma.apiKey.findMany({ orderBy: { createdAt: "desc" } })
@@ -37,7 +46,31 @@ export default async function SettingsPage() {
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Email</dt>
-              <dd className="mt-0.5">{user.email}</dd>
+              <dd className="mt-0.5 flex flex-wrap items-center gap-2">
+                <ClickableCopyableText value={user.email} label="email address" />
+                {emailVerifiedAt ? (
+                  <Badge tone="success">Verified</Badge>
+                ) : (
+                  <Badge tone="warn">Unverified</Badge>
+                )}
+              </dd>
+              <dd className="mt-1 text-xs text-muted">
+                {emailVerifiedAt ? (
+                  `Confirmed ${DATE.format(emailVerifiedAt)}`
+                ) : (
+                  <>
+                    {/* Sign-in refuses an unproven address, so this is worth a
+                        way out rather than a bare label. */}
+                    Sign-in needs a confirmed address.{" "}
+                    <Link
+                      href={`/verify-email?email=${encodeURIComponent(user.email)}`}
+                      className="text-plum underline underline-offset-4"
+                    >
+                      Confirm it
+                    </Link>
+                  </>
+                )}
+              </dd>
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-muted">Role</dt>

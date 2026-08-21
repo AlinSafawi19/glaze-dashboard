@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 
+import { ImageUploadField } from "@/components/image-upload";
 import { Loader } from "@/components/loader";
 import { BrandAsyncSelect } from "@/components/select";
 import { Button, CancelLink, Card, Field, INPUT_CLASS } from "@/components/ui";
@@ -101,55 +101,6 @@ function CheckboxRow({
   );
 }
 
-/** Live thumbnail so a bad URL is obvious before saving. */
-function ImageInput({
-  name,
-  label,
-  hint,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  hint?: string;
-  defaultValue: string;
-}) {
-  const [url, setUrl] = useState(defaultValue);
-  const [broken, setBroken] = useState(false);
-
-  return (
-    <div className="flex items-start gap-3">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden border border-line bg-paper">
-        {url && !broken ? (
-          <Image
-            src={url}
-            alt=""
-            width={64}
-            height={64}
-            unoptimized
-            className="h-16 w-16 object-cover"
-            onError={() => setBroken(true)}
-          />
-        ) : (
-          <span className="text-[10px] text-muted">{broken ? "broken" : "empty"}</span>
-        )}
-      </div>
-      <Field label={label} hint={hint} className="flex-1">
-        <input
-          name={name}
-          type="url"
-          className={INPUT_CLASS}
-          value={url}
-          placeholder="https://…"
-          onChange={(e) => {
-            setUrl(e.target.value);
-            setBroken(false);
-          }}
-        />
-      </Field>
-    </div>
-  );
-}
-
 export function ProductForm({
   action,
   values,
@@ -224,7 +175,7 @@ export function ProductForm({
           <Card className="flex flex-col gap-5 p-6">
             <SectionHeading>Images</SectionHeading>
             {IMAGE_FIELDS.map((field) => (
-              <ImageInput
+              <ImageUploadField
                 key={field.name}
                 name={field.name}
                 label={field.label}

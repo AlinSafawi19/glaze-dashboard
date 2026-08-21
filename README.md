@@ -51,6 +51,31 @@ without defaults:
 | `SESSION_SECRET` | Signs the dashboard session cookie. Required, 32+ chars. |
 | `STOREFRONT_ORIGINS` | Comma-separated origins allowed to call `/api/v1` from a browser. |
 | `RESEND_API_KEY` | Leave blank to skip order emails; the in-dashboard notification still fires. |
+| `STORAGE_*` | S3-compatible bucket for uploaded product images. Blank disables the upload button; the URL fields still work by hand. |
+
+### Product images
+
+Each of a product's four image slots takes a file — dropped on the thumbnail or
+picked with the button — or an `https://` URL pasted in by hand, so artwork
+already hosted elsewhere keeps working.
+
+An uploaded file goes to the bucket named by `STORAGE_BUCKET` under
+`images/products/<year>/<month>/<slug>-<id>.<ext>`, and the field is filled with
+the URL to fetch it back from. The type is decided by the file's own magic
+bytes, not by what the browser claims, and anything that is not a JPEG, PNG,
+WebP, AVIF or GIF is refused before it is stored.
+
+The bucket is **private**: it answers an unsigned `GET` with 403 and rejects
+bucket policies, so nothing hands out a bucket URL. `GET /api/images/…` is the
+only door — it signs the read server-side, and will only serve keys under the
+`images/` prefix. That means image traffic goes through this app. If the bucket
+is ever made publicly readable, set `STORAGE_PUBLIC_BASE_URL` to its public
+origin and new uploads will point straight at it instead; rows already saved
+keep their `/api/images/…` URL and keep working.
+
+Replacing an image does not delete the old object. Duplicating a product copies
+its image URLs, so a "replaced" file may still be another row's cover — clearing
+the bucket out is a deliberate chore, not a side effect of an edit.
 
 ### Scripts
 

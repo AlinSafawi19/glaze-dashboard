@@ -19,6 +19,7 @@
     "db:reset": "prisma migrate reset --force"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1115.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "cross-env": "^10.1.0",
