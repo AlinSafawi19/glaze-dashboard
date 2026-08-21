@@ -12,9 +12,12 @@ import {
   Th,
 } from "@/components/ui";
 import { ActionButton } from "@/components/confirm-button";
+import { Pagination } from "@/components/pagination";
+import { SearchInput } from "@/components/search-input";
 import { TransferButtons } from "@/components/transfer-buttons";
 import { archiveResource, deleteResource, restoreResource } from "@/lib/actions/resources";
 import { getCurrentUser } from "@/lib/dal";
+import { readWindow, type ListWindow } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import type { ResourceConfig, ResourceKey } from "@/lib/resources";
 import { TRANSFERS, type TransferKey } from "@/lib/transfer";
@@ -26,10 +29,35 @@ interface Row {
   [key: string]: unknown;
 }
 
-async function loadRows(config: ResourceConfig, includeArchived: boolean): Promise<Row[]> {
+/**
+ * Search runs against the table, not the page: `where` goes into the query and
+ * the window is taken from what matches. Slug as well as title, because the
+ * slug is what a storefront URL shows and so what gets pasted in here.
+ */
+function buildWhere(includeArchived: boolean, search: string) {
+  return {
+    ...(includeArchived ? {} : { archivedAt: null }),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { slug: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+}
+
+async function loadRows(
+  config: ResourceConfig,
+  where: ReturnType<typeof buildWhere>,
+  window: ListWindow
+): Promise<Row[]> {
   const args = {
-    where: includeArchived ? {} : { archivedAt: null },
+    where,
     orderBy: [{ sortIndex: "asc" as const }, { createdAt: "asc" as const }],
+    skip: window.skip,
+    take: window.take,
     ...(config.productCount
       ? { include: { _count: { select: { products: true } } } }
       : {}),
@@ -50,12 +78,36 @@ async function loadRows(config: ResourceConfig, includeArchived: boolean): Promi
       return prisma.tickerItem.findMany({
         where: args.where,
         orderBy: args.orderBy,
+        skip: window.skip,
+        take: window.take,
       });
     case "utilityPage":
       return prisma.utilityPage.findMany({
         where: args.where,
         orderBy: args.orderBy,
+        skip: window.skip,
+        take: window.take,
       });
+  }
+}
+
+function countRows(
+  config: ResourceConfig,
+  where: ReturnType<typeof buildWhere>
+): Promise<number> {
+  switch (config.model) {
+    case "brand":
+      return prisma.brand.count({ where });
+    case "category":
+      return prisma.category.count({ where });
+    case "collection":
+      return prisma.collection.count({ where });
+    case "skinType":
+      return prisma.skinType.count({ where });
+    case "tickerItem":
+      return prisma.tickerItem.count({ where });
+    case "utilityPage":
+      return prisma.utilityPage.count({ where });
   }
 }
 
@@ -70,13 +122,17 @@ export async function ResourceListPage({
   searchParams,
 }: {
   config: ResourceConfig;
-  searchParams: Promise<{ archived?: string }>;
+  searchParams: Promise<{ archived?: string; q?: string; page?: string; show?: string }>;
 }) {
-  const { archived } = await searchParams;
-  const showArchived = archived === "1";
+  const params = await searchParams;
+  const showArchived = params.archived === "1";
+  const search = (params.q ?? "").trim();
+  const window = readWindow(params);
+  const where = buildWhere(showArchived, search);
 
-  const [rows, user] = await Promise.all([
-    loadRows(config, showArchived),
+  const [rows, total, user] = await Promise.all([
+    loadRows(config, where, window),
+    countRows(config, where),
     getCurrentUser(),
   ]);
 
@@ -103,26 +159,42 @@ export async function ResourceListPage({
         }
       />
 
-      <FilterBar className="gap-4">
-        <Link
-          href={`/${key}`}
-          className={showArchived ? "text-brown hover:text-black" : "text-black underline underline-offset-4"}
-        >
-          Live
-        </Link>
-        <Link
-          href={`/${key}?archived=1`}
-          className={showArchived ? "text-black underline underline-offset-4" : "text-brown hover:text-black"}
-        >
-          Including archived
-        </Link>
-      </FilterBar>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+        <FilterBar className="mb-0 min-w-0 gap-4">
+          <Link
+            href={`/${key}`}
+            className={
+              showArchived ? "text-brown hover:text-black" : "text-black underline underline-offset-4"
+            }
+          >
+            Live
+          </Link>
+          <Link
+            href={`/${key}?archived=1`}
+            className={
+              showArchived ? "text-black underline underline-offset-4" : "text-brown hover:text-black"
+            }
+          >
+            Including archived
+          </Link>
+        </FilterBar>
+
+        <SearchInput placeholder={`Search ${config.plural.toLowerCase()}`} />
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
-          title={`No ${config.plural.toLowerCase()} yet`}
-          description={config.description}
-          action={<LinkButton href={`/${key}/new`}>Add the first one</LinkButton>}
+          title={search ? "Nothing matched that search" : `No ${config.plural.toLowerCase()} yet`}
+          description={
+            search ? "Try a shorter search, or clear it to see everything." : config.description
+          }
+          action={
+            search ? (
+              <LinkButton href={`/${key}`}>Clear search</LinkButton>
+            ) : (
+              <LinkButton href={`/${key}/new`}>Add the first one</LinkButton>
+            )
+          }
         />
       ) : (
         <Table>
@@ -250,6 +322,15 @@ export async function ResourceListPage({
             ))}
           </tbody>
         </Table>
+      )}
+
+      {rows.length > 0 && (
+        <Pagination
+          total={total}
+          page={window.page}
+          shown={rows.length}
+          cumulative={window.cumulative}
+        />
       )}
     </>
   );

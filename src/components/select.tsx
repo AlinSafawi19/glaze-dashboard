@@ -4,6 +4,8 @@ import { useEffect, useId, useState } from "react";
 import Select, { type StylesConfig } from "react-select";
 import AsyncSelect from "react-select/async";
 
+import type { OptionSource } from "@/lib/options";
+
 export interface SelectOption {
   value: string;
   label: string;
@@ -172,25 +174,39 @@ export function BrandSelect({
 }
 
 /**
- * Options that live in the database. The full list is passed in for the first
- * paint, and typing filters it through `loadOptions` — so the component is
- * ready to swap to a real endpoint without the callers changing.
+ * Options that live in the database.
+ *
+ * With a `source` the list is fetched from `/api/options` as the reader types,
+ * so a shop with two thousand products never ships its whole brand list to the
+ * browser on the off-chance the menu is opened. `options` is still used for the
+ * first paint and for the no-JS fallback, and it is what the current value's
+ * label is read from — including a value that is archived and so no longer
+ * offered as a choice.
+ *
+ * Without a `source` it falls back to filtering `options` in the browser, which
+ * is right for a list that is genuinely short and already loaded.
  */
 export function BrandAsyncSelect({
   name,
   options,
+  source,
   defaultValue,
   placeholder = "Search…",
   isMulti = false,
   isClearable = true,
+  onChange,
 }: {
   name: string;
   options: SelectOption[];
+  /** Look choices up in the database instead of filtering `options` here. */
+  source?: OptionSource;
   /** A single value, or a list of them when `isMulti`. */
   defaultValue?: string | string[];
   placeholder?: string;
   isMulti?: boolean;
   isClearable?: boolean;
+  /** Fires on every change — for selects that act rather than submit. */
+  onChange?: (value: string | null) => void;
 }) {
   const instanceId = useId();
   const mounted = useMounted();
@@ -201,12 +217,25 @@ export function BrandAsyncSelect({
 
   const [value, setValue] = useState<SelectOption | readonly SelectOption[] | null>(initial);
 
-  const loadOptions = (input: string) =>
-    Promise.resolve(
-      input
+  const loadOptions = async (input: string): Promise<SelectOption[]> => {
+    if (!source) {
+      return input
         ? options.filter((o) => o.label.toLowerCase().includes(input.toLowerCase()))
-        : options
-    );
+        : options;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/options?source=${source}&q=${encodeURIComponent(input)}`
+      );
+      if (!response.ok) return [];
+      const payload = (await response.json()) as { options?: SelectOption[] };
+      return payload.options ?? [];
+    } catch {
+      // A dropped request should leave an empty menu, not an unhandled reject.
+      return [];
+    }
+  };
 
   const selected = Array.isArray(value) ? value : value ? [value as SelectOption] : [];
 
@@ -215,6 +244,7 @@ export function BrandAsyncSelect({
       <select
         name={name}
         multiple={isMulti}
+        onChange={(event) => onChange?.(event.target.value || null)}
         defaultValue={
           isMulti
             ? (Array.isArray(defaultValue) ? defaultValue : [])
@@ -244,11 +274,14 @@ export function BrandAsyncSelect({
         {...BASE_PROPS}
         instanceId={instanceId}
         inputId={`${instanceId}-input`}
-        cacheOptions
+        cacheOptions={!source}
         defaultOptions={options}
         loadOptions={loadOptions}
         value={value}
-        onChange={(next) => setValue(next as SelectOption | readonly SelectOption[] | null)}
+        onChange={(next) => {
+          setValue(next as SelectOption | readonly SelectOption[] | null);
+          onChange?.((next as SelectOption | null)?.value ?? null);
+        }}
         placeholder={placeholder}
         isMulti={isMulti}
         isClearable={isClearable}

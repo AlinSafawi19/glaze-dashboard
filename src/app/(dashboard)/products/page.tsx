@@ -3,6 +3,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ActionButton } from "@/components/confirm-button";
+import { Filters, type FilterSpec } from "@/components/filters";
+import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
 import { TransferButtons } from "@/components/transfer-buttons";
 import {
@@ -24,6 +26,7 @@ import {
 import { bestSellerIds, unitsSoldByProduct } from "@/lib/best-sellers";
 import { getCurrentUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
+import { readWindow } from "@/lib/pagination";
 import { TRANSFERS } from "@/lib/transfer";
 
 export const metadata: Metadata = { title: "Products" };
@@ -31,27 +34,50 @@ export const metadata: Metadata = { title: "Products" };
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ archived?: string; q?: string }>;
+  searchParams: Promise<{
+    archived?: string;
+    q?: string;
+    brand?: string;
+    category?: string;
+    collection?: string;
+    skinType?: string;
+    page?: string;
+    show?: string;
+  }>;
 }) {
-  const { archived, q } = await searchParams;
-  const showArchived = archived === "1";
-  const search = (q ?? "").trim();
+  const params = await searchParams;
+  const showArchived = params.archived === "1";
+  const search = (params.q ?? "").trim();
+  const window = readWindow(params);
 
-  const [products, user, bestSellers, unitsSold] = await Promise.all([
+  // Every one of these lands in the query's `where`, so a filter narrows the
+  // whole catalogue and the count below the table is the real total — not a
+  // count of what survived on the current page.
+  const where = {
+    ...(showArchived ? {} : { archivedAt: null }),
+    ...(params.brand ? { brandId: params.brand } : {}),
+    ...(params.category ? { categoryId: params.category } : {}),
+    ...(params.collection ? { collectionId: params.collection } : {}),
+    ...(params.skinType
+      ? { skinTypes: { some: { skinTypeId: params.skinType } } }
+      : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search, mode: "insensitive" as const } },
+            { slug: { contains: search, mode: "insensitive" as const } },
+            { sku: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
+
+  const [products, total, user, bestSellers, unitsSold, chosen] = await Promise.all([
     prisma.product.findMany({
-      where: {
-        ...(showArchived ? {} : { archivedAt: null }),
-        ...(search
-          ? {
-              OR: [
-                { title: { contains: search, mode: "insensitive" as const } },
-                { slug: { contains: search, mode: "insensitive" as const } },
-                { sku: { contains: search, mode: "insensitive" as const } },
-              ],
-            }
-          : {}),
-      },
+      where,
       orderBy: [{ sortIndex: "asc" }, { createdAt: "asc" }],
+      skip: window.skip,
+      take: window.take,
       include: {
         brand: { select: { title: true } },
         category: { select: { title: true } },
@@ -62,10 +88,65 @@ export default async function ProductsPage({
         },
       },
     }),
+    prisma.product.count({ where }),
     getCurrentUser(),
     bestSellerIds(),
     unitsSoldByProduct(),
+    // The filter selects hold ids; these are the labels to show for them.
+    Promise.all([
+      params.brand
+        ? prisma.brand.findUnique({ where: { id: params.brand }, select: { title: true } })
+        : null,
+      params.category
+        ? prisma.category.findUnique({ where: { id: params.category }, select: { title: true } })
+        : null,
+      params.collection
+        ? prisma.collection.findUnique({
+            where: { id: params.collection },
+            select: { title: true },
+          })
+        : null,
+      params.skinType
+        ? prisma.skinType.findUnique({
+            where: { id: params.skinType },
+            select: { title: true },
+          })
+        : null,
+    ]),
   ]);
+
+  const [brandChoice, categoryChoice, collectionChoice, skinTypeChoice] = chosen;
+
+  const filters: FilterSpec[] = [
+    {
+      param: "brand",
+      label: "Brand",
+      source: "brand",
+      value: params.brand ?? null,
+      valueLabel: brandChoice?.title ?? null,
+    },
+    {
+      param: "category",
+      label: "Category",
+      source: "category",
+      value: params.category ?? null,
+      valueLabel: categoryChoice?.title ?? null,
+    },
+    {
+      param: "collection",
+      label: "Collection",
+      source: "collection",
+      value: params.collection ?? null,
+      valueLabel: collectionChoice?.title ?? null,
+    },
+    {
+      param: "skinType",
+      label: "Skin type",
+      source: "skinType",
+      value: params.skinType ?? null,
+      valueLabel: skinTypeChoice?.title ?? null,
+    },
+  ];
 
   return (
     <>
@@ -107,6 +188,8 @@ export default async function ProductsPage({
 
         <SearchInput placeholder="Search title, slug or SKU" />
       </div>
+
+      <Filters filters={filters} />
 
       {products.length === 0 ? (
         <EmptyState
@@ -283,6 +366,15 @@ export default async function ProductsPage({
             })}
           </tbody>
         </Table>
+      )}
+
+      {products.length > 0 && (
+        <Pagination
+          total={total}
+          page={window.page}
+          shown={products.length}
+          cumulative={window.cumulative}
+        />
       )}
     </>
   );

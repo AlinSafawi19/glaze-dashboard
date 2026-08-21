@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ActionButton } from "@/components/confirm-button";
+import { Filters, type FilterSpec } from "@/components/filters";
+import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
 import {
   Badge,
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui";
 import { archiveCustomer, restoreCustomer } from "@/lib/actions/customers";
 import { getCurrentUser } from "@/lib/dal";
+import { readWindow } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { ClickableCopyableText } from "@/components/text";
 
@@ -29,14 +32,22 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ archived?: string; q?: string }>;
+  searchParams: Promise<{
+    archived?: string;
+    q?: string;
+    city?: string;
+    page?: string;
+    show?: string;
+  }>;
 }) {
-  const { archived, q } = await searchParams;
-  const showArchived = archived === "1";
-  const search = (q ?? "").trim();
+  const params = await searchParams;
+  const showArchived = params.archived === "1";
+  const search = (params.q ?? "").trim();
+  const window = readWindow(params);
 
   const where = {
     ...(showArchived ? {} : { archivedAt: null }),
+    ...(params.city ? { city: params.city } : {}),
     ...(search
       ? {
           OR: [
@@ -48,10 +59,12 @@ export default async function CustomersPage({
       : {}),
   };
 
-  const [customers, user] = await Promise.all([
+  const [customers, total, user] = await Promise.all([
     prisma.customer.findMany({
       where,
       orderBy: { createdAt: "desc" },
+      skip: window.skip,
+      take: window.take,
       select: {
         id: true,
         name: true,
@@ -68,8 +81,20 @@ export default async function CustomersPage({
         },
       },
     }),
+    prisma.customer.count({ where }),
     getCurrentUser(),
   ]);
+
+  const filters: FilterSpec[] = [
+    {
+      param: "city",
+      label: "City",
+      source: "customerCity",
+      value: params.city ?? null,
+      // Stored as text on the customer, so the value is its own label.
+      valueLabel: params.city ?? null,
+    },
+  ];
 
   return (
     <>
@@ -100,6 +125,8 @@ export default async function CustomersPage({
 
         <SearchInput placeholder="Search name, email or phone" />
       </div>
+
+      <Filters filters={filters} />
 
       {customers.length === 0 ? (
         <EmptyState
@@ -196,6 +223,15 @@ export default async function CustomersPage({
             })}
           </tbody>
         </Table>
+      )}
+
+      {customers.length > 0 && (
+        <Pagination
+          total={total}
+          page={window.page}
+          shown={customers.length}
+          cumulative={window.cumulative}
+        />
       )}
     </>
   );

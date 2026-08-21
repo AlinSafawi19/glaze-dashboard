@@ -3,6 +3,9 @@ import Link from "next/link";
 import type { OrderStatus } from "@prisma/client";
 
 import { ActionButton } from "@/components/confirm-button";
+import { Filters, type FilterSpec } from "@/components/filters";
+import { Pagination } from "@/components/pagination";
+import { SearchInput } from "@/components/search-input";
 import { StatusSelect } from "@/components/status-select";
 import {
   Badge,
@@ -16,6 +19,7 @@ import {
 } from "@/components/ui";
 import { archiveOrder, restoreOrder } from "@/lib/actions/orders";
 import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/order-status";
+import { readWindow } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { ClickableCopyableText } from "@/components/text";
 
@@ -31,29 +35,88 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; archived?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    archived?: string;
+    q?: string;
+    city?: string;
+    payment?: string;
+    page?: string;
+    show?: string;
+  }>;
 }) {
-  const { status, archived } = await searchParams;
-  const showArchived = archived === "1";
-  const filter = ORDER_STATUSES.includes(status as OrderStatus)
-    ? (status as OrderStatus)
+  const params = await searchParams;
+  const showArchived = params.archived === "1";
+  const search = (params.q ?? "").trim();
+  const window = readWindow(params);
+  const filter = ORDER_STATUSES.includes(params.status as OrderStatus)
+    ? (params.status as OrderStatus)
     : null;
 
-  const orders = await prisma.order.findMany({
-    where: {
-      ...(showArchived ? {} : { archivedAt: null }),
-      ...(filter ? { status: filter } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { items: { select: { id: true, quantity: true } } },
-  });
+  // Search and filters both go into `where`, so they run over every order in
+  // the table and the page is cut from the result — not the other way round.
+  const where = {
+    ...(showArchived ? {} : { archivedAt: null }),
+    ...(filter ? { status: filter } : {}),
+    ...(params.city ? { city: params.city } : {}),
+    ...(params.payment ? { payment: params.payment } : {}),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { city: { contains: search, mode: "insensitive" as const } },
+            ...(Number.isFinite(Number.parseInt(search, 10))
+              ? [{ number: Number.parseInt(search, 10) }]
+              : []),
+          ],
+        }
+      : {}),
+  };
 
-  const counts = await prisma.order.groupBy({
-    by: ["status"],
-    where: { archivedAt: null },
-    _count: true,
-  });
+  const [orders, total, counts, payments] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: window.skip,
+      take: window.take,
+      include: { items: { select: { id: true, quantity: true } } },
+    }),
+    prisma.order.count({ where }),
+    prisma.order.groupBy({
+      by: ["status"],
+      where: { archivedAt: null },
+      _count: true,
+    }),
+    // Short and fixed in practice, so the payment filter is a plain list.
+    prisma.order.findMany({
+      distinct: ["payment"],
+      orderBy: { payment: "asc" },
+      select: { payment: true },
+      take: 20,
+    }),
+  ]);
+
   const countFor = (s: OrderStatus) => counts.find((c) => c.status === s)?._count ?? 0;
+
+  const filters: FilterSpec[] = [
+    {
+      param: "city",
+      label: "City",
+      source: "orderCity",
+      value: params.city ?? null,
+      // Cities are stored on the order as text, so the value is its own label.
+      valueLabel: params.city ?? null,
+    },
+    {
+      param: "payment",
+      label: "Payment",
+      options: payments.map((row) => ({ value: row.payment, label: row.payment })),
+      value: params.payment ?? null,
+      valueLabel: params.payment ?? null,
+    },
+  ];
 
   return (
     <>
@@ -93,6 +156,12 @@ export default async function OrdersPage({
           {showArchived ? "Hide archived" : "Show archived"}
         </Link>
       </FilterBar>
+
+      <div className="mb-4">
+        <SearchInput placeholder="Search name, phone, email, city or #number" />
+      </div>
+
+      <Filters filters={filters} />
 
       {orders.length === 0 ? (
         <EmptyState
@@ -179,6 +248,15 @@ export default async function OrdersPage({
             })}
           </tbody>
         </Table>
+      )}
+
+      {orders.length > 0 && (
+        <Pagination
+          total={total}
+          page={window.page}
+          shown={orders.length}
+          cumulative={window.cumulative}
+        />
       )}
     </>
   );

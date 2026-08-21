@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: CONFIG.plural };
 export default function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ archived?: string }>;
+  searchParams: Promise<{ archived?: string; q?: string; page?: string; show?: string }>;
 }) {
   return <ResourceListPage config={CONFIG} searchParams={searchParams} />;
 }

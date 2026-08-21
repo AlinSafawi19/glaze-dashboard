@@ -272,6 +272,7 @@ export function ProductForm({
             <Field label="Brand">
               <BrandAsyncSelect
                 name="brandId"
+                source="brand"
                 options={toOptions(brands)}
                 defaultValue={values.brandId}
                 placeholder="Search brands…"
@@ -281,6 +282,7 @@ export function ProductForm({
             <Field label="Category">
               <BrandAsyncSelect
                 name="categoryId"
+                source="category"
                 options={toOptions(categories)}
                 defaultValue={values.categoryId}
                 placeholder="Search categories…"
@@ -290,6 +292,7 @@ export function ProductForm({
             <Field label="Collection">
               <BrandAsyncSelect
                 name="collectionId"
+                source="collection"
                 options={toOptions(collections)}
                 defaultValue={values.collectionId}
                 placeholder="Search collections…"
@@ -308,6 +311,7 @@ export function ProductForm({
               ) : (
                 <BrandAsyncSelect
                   name="skinTypeIds"
+                  source="skinType"
                   options={toOptions(skinTypes)}
                   defaultValue={values.skinTypeIds}
                   placeholder="Search skin types…"

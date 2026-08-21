@@ -47,6 +47,10 @@ export function SearchInput({
       if (value) params.set(paramName, value);
       else params.delete(paramName);
 
+      // A new search is a new result set; page 4 of the old one is meaningless.
+      params.delete("page");
+      params.delete("show");
+
       typed.current = value;
       startTransition(() => {
         router.replace(`${pathname}?${params}`, { scroll: false });
