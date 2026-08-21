@@ -16,11 +16,20 @@ import { ActionButton } from "@/components/confirm-button";
 import { Logomark } from "@/components/logomark";
 import { NotificationBell } from "@/components/notification-bell";
 import { RefreshButton } from "@/components/refresh-button";
+import { cx } from "@/components/ui";
 import { logout } from "@/lib/actions/auth";
 import { requireUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { MobileNav } from "./mobile-nav";
 import { NavLink } from "./nav-link";
+
+/**
+ * The wordmark is artwork, not a control with an edge, so the browser's default
+ * ring reads as a box drawn around the logo. Keyboard users still get one — the
+ * app's own plum outline — but a mouse click no longer leaves it behind.
+ */
+const LOGO_FOCUS =
+  "outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-plum";
 
 const NAV = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -53,7 +62,7 @@ export default async function DashboardLayout({
    */
   const brand = (
     <div className="px-5 py-6">
-      <Link href="/dashboard" className="block">
+      <Link href="/dashboard" className={cx("block", LOGO_FOCUS)}>
         <Logomark tone="plum" className="max-w-[128px]" />
       </Link>
     </div>
@@ -110,7 +119,10 @@ export default async function DashboardLayout({
             {account}
           </MobileNav>
 
-          <Link href="/dashboard" className="block w-[104px] desktop:hidden">
+          <Link
+            href="/dashboard"
+            className={cx("block w-[104px] desktop:hidden", LOGO_FOCUS)}
+          >
             <Logomark tone="plum" />
           </Link>
 
