@@ -142,7 +142,7 @@ export default async function CustomerPage({
                   const units = order.items.reduce((sum, i) => sum + i.quantity, 0);
                   return (
                     <tr key={order.id}>
-                      <Td>
+                      <Td label="Order">
                         <Link
                           href={`/orders/${order.id}`}
                           className="transition-colors hover:text-plum"
@@ -153,10 +153,16 @@ export default async function CustomerPage({
                           {DATE.format(order.createdAt)}
                         </p>
                       </Td>
-                      <Td className="text-brown">{units}</Td>
-                      <Td className="text-brown">{order.city}</Td>
-                      <Td className="tabular-nums">${Number(order.total)}</Td>
-                      <Td>
+                      <Td label="Items" className="text-brown">
+                        {units}
+                      </Td>
+                      <Td label="City" className="text-brown">
+                        {order.city}
+                      </Td>
+                      <Td label="Total" className="tabular-nums">
+                        ${Number(order.total)}
+                      </Td>
+                      <Td label="Status">
                         <Badge tone={STATUS_TONE[order.status]}>
                           {STATUS_LABEL[order.status]}
                         </Badge>

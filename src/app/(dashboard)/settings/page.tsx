@@ -120,7 +120,7 @@ export default async function SettingsPage() {
 
                     return (
                       <tr key={key.id} className={dead ? "opacity-55" : undefined}>
-                        <Td className="font-medium">
+                        <Td label="Name" className="font-medium">
                           {key.name}
                           {key.revokedAt && (
                             <span className="ml-2">
@@ -133,12 +133,16 @@ export default async function SettingsPage() {
                             </span>
                           )}
                         </Td>
-                        <Td className="font-mono text-xs text-muted">{key.keyPrefix}…</Td>
-                        <Td className="text-muted">{DATE.format(key.createdAt)}</Td>
-                        <Td className="text-muted">
+                        <Td label="Key" className="font-mono text-xs text-muted">
+                          {key.keyPrefix}…
+                        </Td>
+                        <Td label="Created" className="text-muted">
+                          {DATE.format(key.createdAt)}
+                        </Td>
+                        <Td label="Expires" className="text-muted">
                           {key.expiresAt ? DATE.format(key.expiresAt) : "Never"}
                         </Td>
-                        <Td className="text-muted">
+                        <Td label="Last used" className="text-muted">
                           {key.lastUsedAt ? DATE.format(key.lastUsedAt) : "Never"}
                         </Td>
                         <Td>

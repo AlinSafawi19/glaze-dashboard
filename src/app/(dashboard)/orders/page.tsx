@@ -4,7 +4,16 @@ import type { OrderStatus } from "@prisma/client";
 
 import { ActionButton } from "@/components/confirm-button";
 import { StatusSelect } from "@/components/status-select";
-import { Badge, EmptyState, LinkButton, PageHeader, Table, Td, Th } from "@/components/ui";
+import {
+  Badge,
+  EmptyState,
+  FilterBar,
+  LinkButton,
+  PageHeader,
+  Table,
+  Td,
+  Th,
+} from "@/components/ui";
 import { archiveOrder, restoreOrder } from "@/lib/actions/orders";
 import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
@@ -53,7 +62,7 @@ export default async function OrdersPage({
         subtitle="Cash on delivery. Call the customer to confirm, then move the status along."
       />
 
-      <div className="mb-4 flex flex-wrap items-center gap-3 label-sm">
+      <FilterBar>
         <Link
           href="/orders"
           className={filter ? "text-brown hover:text-black" : "text-black underline underline-offset-4"}
@@ -83,7 +92,7 @@ export default async function OrdersPage({
         >
           {showArchived ? "Hide archived" : "Show archived"}
         </Link>
-      </div>
+      </FilterBar>
 
       {orders.length === 0 ? (
         <EmptyState
@@ -108,7 +117,7 @@ export default async function OrdersPage({
               const units = order.items.reduce((sum, i) => sum + i.quantity, 0);
               return (
                 <tr key={order.id}>
-                  <Td>
+                  <Td label="Order">
                     <Link
                       href={`/orders/${order.id}`}
                       className="font-medium hover:text-accent"
@@ -117,18 +126,22 @@ export default async function OrdersPage({
                     </Link>
                     <p className="text-xs text-muted">{DATE.format(order.createdAt)}</p>
                   </Td>
-                  <Td>
+                  <Td label="Customer">
                     <p className="font-medium">{order.name}</p>
                     <p className="text-xs text-muted">
                       <ClickableCopyableText value={order.phone} label="phone number" />
                     </p>
                   </Td>
-                  <Td className="text-muted">{order.city}</Td>
-                  <Td className="text-muted">
+                  <Td label="Where" className="text-muted">
+                    {order.city}
+                  </Td>
+                  <Td label="Items" className="text-muted">
                     {units} {units === 1 ? "item" : "items"}
                   </Td>
-                  <Td className="font-medium">${Number(order.total)}</Td>
-                  <Td>
+                  <Td label="Total" className="font-medium">
+                    ${Number(order.total)}
+                  </Td>
+                  <Td label="Status">
                     {order.archivedAt ? (
                       <Badge tone="warn">Archived</Badge>
                     ) : (

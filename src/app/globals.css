@@ -237,6 +237,89 @@
   border-color: var(--color-brown);
 }
 
+/* A scrolling row of filters should not carry a scrollbar under it. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Below `desktop` the sidebar is a drawer and the content runs the full width
+ * of a phone or a tablet — which is still nowhere near enough for a seven
+ * column table. Rather than scroll it sideways and hide half the columns off
+ * the edge, every row becomes a card and every cell carries its own label.
+ *
+ * Done in CSS on the existing markup, so a page stays one table and one set of
+ * headers rather than two layouts to keep in step. `Td`'s `label` prop is what
+ * feeds `data-label`; a cell without one spans the card, which is what the
+ * thumbnail and the row actions want.
+ */
+@media (max-width: 1199px) {
+  .stacked-table-wrap {
+    overflow-x: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .stacked-table {
+    display: block;
+    /* Beats the inline `min-width` the component sets for the real table. */
+    min-width: 0 !important;
+  }
+
+  .stacked-table thead {
+    display: none;
+  }
+
+  .stacked-table tbody {
+    display: block;
+  }
+
+  .stacked-table tr {
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid var(--color-beige);
+    background: var(--color-white);
+  }
+
+  .stacked-table tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .stacked-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: auto;
+    border-bottom: 1px dashed var(--color-dusty);
+    text-align: left;
+  }
+
+  .stacked-table tr td:last-child {
+    border-bottom: 0;
+  }
+
+  .stacked-table td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    font-family: var(--font-clash);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-brown);
+  }
+
+  /* Width hints are column sizing; a card has only the one column. */
+  .stacked-table td[class*="w-"] {
+    width: auto;
+  }
+}
+
 /* A day you cannot pick should not offer a pointer. */
 .glaze-calendar .react-datepicker__day--disabled {
   cursor: not-allowed;

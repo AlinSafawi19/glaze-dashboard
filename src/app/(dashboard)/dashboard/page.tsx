@@ -153,7 +153,7 @@ export default async function OverviewPage({
             <tbody>
               {open.orders.map((order) => (
                 <tr key={order.id}>
-                  <Td>
+                  <Td label="Order">
                     <Link
                       href={`/orders/${order.id}`}
                       className="transition-colors hover:text-plum"
@@ -164,16 +164,22 @@ export default async function OverviewPage({
                       {DATE.format(order.createdAt)} · {waitingFor(order.createdAt)}
                     </p>
                   </Td>
-                  <Td>
+                  <Td label="Customer">
                     <p>{order.name}</p>
                     <p className="font-inter text-[12px] font-light text-brown">
                       {order.phone}
                     </p>
                   </Td>
-                  <Td className="text-brown">{order.city}</Td>
-                  <Td className="text-brown tabular-nums">{order.units}</Td>
-                  <Td className="tabular-nums">{money(order.total)}</Td>
-                  <Td>
+                  <Td label="Where" className="text-brown">
+                    {order.city}
+                  </Td>
+                  <Td label="Items" className="text-brown tabular-nums">
+                    {order.units}
+                  </Td>
+                  <Td label="Total" className="tabular-nums">
+                    {money(order.total)}
+                  </Td>
+                  <Td label="Status">
                     <Badge tone={STATUS_TONE[order.status]}>
                       {STATUS_LABEL[order.status]}
                     </Badge>
@@ -249,7 +255,7 @@ export default async function OverviewPage({
                         <div className="h-11 w-9 border border-dashed border-line" />
                       )}
                     </Td>
-                    <Td>
+                    <Td label="Product">
                       <Link
                         href={`/products/${product.id}`}
                         className="transition-colors hover:text-plum"
@@ -257,8 +263,12 @@ export default async function OverviewPage({
                         {product.title}
                       </Link>
                     </Td>
-                    <Td className="text-brown tabular-nums">{product.units}</Td>
-                    <Td className="text-right tabular-nums">{money(product.revenue)}</Td>
+                    <Td label="Units" className="text-brown tabular-nums">
+                      {product.units}
+                    </Td>
+                    <Td label="Revenue" className="text-right tabular-nums">
+                      {money(product.revenue)}
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -285,7 +295,7 @@ export default async function OverviewPage({
               <tbody>
                 {clients.map((client) => (
                   <tr key={client.id}>
-                    <Td>
+                    <Td label="Customer">
                       <Link
                         href={`/customers/${client.id}`}
                         className="transition-colors hover:text-plum"
@@ -296,9 +306,15 @@ export default async function OverviewPage({
                         <ClickableCopyableText value={client.email} label="email address" />
                       </p>
                     </Td>
-                    <Td className="text-brown">{client.city ?? "—"}</Td>
-                    <Td className="text-brown tabular-nums">{client.orders}</Td>
-                    <Td className="text-right tabular-nums">{money(client.spent)}</Td>
+                    <Td label="City" className="text-brown">
+                      {client.city ?? "—"}
+                    </Td>
+                    <Td label="Orders" className="text-brown tabular-nums">
+                      {client.orders}
+                    </Td>
+                    <Td label="Spent" className="text-right tabular-nums">
+                      {money(client.spent)}
+                    </Td>
                   </tr>
                 ))}
               </tbody>

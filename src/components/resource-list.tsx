@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   Badge,
   EmptyState,
+  FilterBar,
   LinkButton,
   PageHeader,
   Table,
@@ -102,7 +103,7 @@ export async function ResourceListPage({
         }
       />
 
-      <div className="mb-4 flex items-center gap-4 label-sm">
+      <FilterBar className="gap-4">
         <Link
           href={`/${key}`}
           className={showArchived ? "text-brown hover:text-black" : "text-black underline underline-offset-4"}
@@ -115,7 +116,7 @@ export async function ResourceListPage({
         >
           Including archived
         </Link>
-      </div>
+      </FilterBar>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -161,7 +162,7 @@ export async function ResourceListPage({
 
                   if (column.type === "html") {
                     return (
-                      <Td key={column.name} className="max-w-sm text-muted">
+                      <Td key={column.name} label={column.label} className="max-w-sm text-muted">
                         {typeof value === "string" ? textPreview(value) : "—"}
                       </Td>
                     );
@@ -169,7 +170,11 @@ export async function ResourceListPage({
 
                   const isName = column.name === "title";
                   return (
-                    <Td key={column.name} className={isName ? undefined : "text-brown"}>
+                    <Td
+                      key={column.name}
+                      label={column.label}
+                      className={isName ? undefined : "text-brown"}
+                    >
                       {isName ? (
                         <span className="flex items-center gap-2">
                           {/* Archived rows are not editable, so the title is
@@ -194,7 +199,9 @@ export async function ResourceListPage({
                 })}
 
                 {config.productCount && (
-                  <Td className="text-brown">{row._count?.products ?? 0}</Td>
+                  <Td label="Products" className="text-brown">
+                    {row._count?.products ?? 0}
+                  </Td>
                 )}
 
                 <Td>

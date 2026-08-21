@@ -3,7 +3,16 @@ import Link from "next/link";
 
 import { ActionButton } from "@/components/confirm-button";
 import { SearchInput } from "@/components/search-input";
-import { Badge, EmptyState, LinkButton, PageHeader, Table, Td, Th } from "@/components/ui";
+import {
+  Badge,
+  EmptyState,
+  FilterBar,
+  LinkButton,
+  PageHeader,
+  Table,
+  Td,
+  Th,
+} from "@/components/ui";
 import { archiveCustomer, restoreCustomer } from "@/lib/actions/customers";
 import { getCurrentUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
@@ -70,7 +79,7 @@ export default async function CustomersPage({
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4 label-sm">
+        <FilterBar className="mb-0 min-w-0 gap-4">
           <Link
             href="/customers"
             className={
@@ -87,7 +96,7 @@ export default async function CustomersPage({
           >
             Including archived
           </Link>
-        </div>
+        </FilterBar>
 
         <SearchInput placeholder="Search name, email or phone" />
       </div>
@@ -121,7 +130,7 @@ export default async function CustomersPage({
 
               return (
                 <tr key={customer.id}>
-                  <Td>
+                  <Td label="Customer">
                     <Link
                       href={`/customers/${customer.id}`}
                       className="transition-colors hover:text-plum"
@@ -137,17 +146,25 @@ export default async function CustomersPage({
                       </span>
                     )}
                   </Td>
-                  <Td className="text-brown">
+                  <Td label="Phone" className="text-brown">
                     {customer.phone ? (
                       <ClickableCopyableText value={customer.phone} label="phone number" />
                     ) : (
                       "—"
                     )}
                   </Td>
-                  <Td className="text-brown">{customer.city ?? "—"}</Td>
-                  <Td className="text-brown tabular-nums">{customer._count.orders}</Td>
-                  <Td className="tabular-nums">${spent}</Td>
-                  <Td className="text-brown">{DATE.format(customer.createdAt)}</Td>
+                  <Td label="City" className="text-brown">
+                    {customer.city ?? "—"}
+                  </Td>
+                  <Td label="Orders" className="text-brown tabular-nums">
+                    {customer._count.orders}
+                  </Td>
+                  <Td label="Spent" className="tabular-nums">
+                    ${spent}
+                  </Td>
+                  <Td label="Joined" className="text-brown">
+                    {DATE.format(customer.createdAt)}
+                  </Td>
                   <Td>
                     <div className="flex items-center justify-end gap-1">
                       <LinkButton href={`/customers/${customer.id}`} variant="row">

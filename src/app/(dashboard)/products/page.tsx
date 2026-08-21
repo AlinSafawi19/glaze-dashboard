@@ -8,6 +8,7 @@ import { TransferButtons } from "@/components/transfer-buttons";
 import {
   Badge,
   EmptyState,
+  FilterBar,
   LinkButton,
   PageHeader,
   Table,
@@ -89,7 +90,7 @@ export default async function ProductsPage({
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4 label-sm">
+        <FilterBar className="mb-0 min-w-0 gap-4">
           <Link
             href="/products"
             className={showArchived ? "text-brown hover:text-black" : "text-black underline underline-offset-4"}
@@ -102,7 +103,7 @@ export default async function ProductsPage({
           >
             Including archived
           </Link>
-        </div>
+        </FilterBar>
 
         <SearchInput placeholder="Search title, slug or SKU" />
       </div>
@@ -164,7 +165,7 @@ export default async function ProductsPage({
                     )}
                   </Td>
 
-                  <Td>
+                  <Td label="Product">
                     {/* Archived products are not editable, so the title only
                         links into the editor while the product is live. */}
                     {product.archivedAt ? (
@@ -188,17 +189,23 @@ export default async function ProductsPage({
                     )}
                   </Td>
 
-                  <Td className="text-brown">{product.brand?.title ?? "—"}</Td>
-                  <Td className="text-brown">{product.category?.title ?? "—"}</Td>
-                  <Td className="text-brown">{product.collection?.title ?? "—"}</Td>
+                  <Td label="Brand" className="text-brown">
+                    {product.brand?.title ?? "—"}
+                  </Td>
+                  <Td label="Category" className="text-brown">
+                    {product.category?.title ?? "—"}
+                  </Td>
+                  <Td label="Collection" className="text-brown">
+                    {product.collection?.title ?? "—"}
+                  </Td>
 
-                  <Td className="text-brown">
+                  <Td label="Skin types" className="text-brown">
                     {product.skinTypes.length === 0
                       ? "—"
                       : product.skinTypes.map((link) => link.skinType.title).join(", ")}
                   </Td>
 
-                  <Td>
+                  <Td label="Price">
                     <span>${final}</span>
                     {product.discount > 0 && (
                       <span className="ml-1.5 font-inter text-[12px] text-brown line-through">
@@ -207,11 +214,11 @@ export default async function ProductsPage({
                     )}
                   </Td>
 
-                  <Td className="text-brown tabular-nums">
+                  <Td label="Sold" className="text-brown tabular-nums">
                     {unitsSold.get(product.id) ?? 0}
                   </Td>
 
-                  <Td>
+                  <Td label="Badges">
                     <div className="flex flex-wrap gap-1">
                       {bestSellers.has(product.id) && (
                         <Badge tone="success">Best seller</Badge>

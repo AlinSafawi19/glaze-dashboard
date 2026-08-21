@@ -193,20 +193,41 @@ export function Table({
    * Below this the table scrolls sideways rather than crushing its columns.
    * Narrow it for tables that sit two-to-a-row, where 640 would clip a column
    * out of sight instead of wrapping it.
+   *
+   * Only applies from `desktop` up — below that the rows become cards and
+   * there are no columns left to keep apart.
    */
   minWidth?: number;
   /** For a table that has to fill the height of the panel beside it. */
   className?: string;
 }) {
   return (
-    <div className={cx("overflow-x-auto border border-beige bg-white", className)}>
+    <div className={cx("stacked-table-wrap overflow-x-auto border border-beige bg-white", className)}>
       <table
-        className="w-full border-collapse font-inter text-[14px] font-light"
+        className="stacked-table w-full border-collapse font-inter text-[14px] font-light"
         style={{ minWidth }}
       >
         {children}
       </table>
     </div>
+  );
+}
+
+/**
+ * The row of filters above a list — "Live / Including archived", the order
+ * statuses. Narrow screens wrap them into a ragged second line, so instead
+ * they stay on one line and scroll sideways, the way the lists below them do.
+ */
+export function FilterBar({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cx(
+        "no-scrollbar mb-4 flex items-center gap-3 overflow-x-auto whitespace-nowrap label-sm",
+        "[&>*]:shrink-0 desktop:flex-wrap desktop:overflow-visible",
+        className
+      )}
+      {...props}
+    />
   );
 }
 
@@ -222,9 +243,23 @@ export function Th({ className, ...props }: ComponentProps<"th">) {
   );
 }
 
-export function Td({ className, ...props }: ComponentProps<"td">) {
+export function Td({
+  label,
+  className,
+  ...props
+}: ComponentProps<"td"> & {
+  /**
+   * The column this cell belongs to. Invisible while the table is a table;
+   * below `desktop`, where each row becomes a card, it is printed beside the
+   * value — otherwise a stack of bare values says nothing about what it is.
+   * Leave it off for a cell that should span the card: a thumbnail, or the
+   * row's actions.
+   */
+  label?: string;
+}) {
   return (
     <td
+      data-label={label}
       className={cx("border-b border-dusty px-4 py-3 align-middle text-black", className)}
       {...props}
     />

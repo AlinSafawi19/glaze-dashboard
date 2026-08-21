@@ -111,13 +111,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <tbody>
               {order.items.map((item) => (
                 <tr key={item.id}>
-                  <Td>
+                  <Td label="Item">
                     <p className="font-medium">{item.title}</p>
                     <p className="text-xs text-muted">/{item.slug}</p>
                   </Td>
-                  <Td className="text-muted">${Number(item.unitPrice)}</Td>
-                  <Td className="text-muted">{item.quantity}</Td>
-                  <Td className="text-right font-medium">
+                  <Td label="Unit" className="text-muted">
+                    ${Number(item.unitPrice)}
+                  </Td>
+                  <Td label="Qty" className="text-muted">
+                    {item.quantity}
+                  </Td>
+                  <Td label="Line total" className="text-right font-medium">
                     ${Number(item.unitPrice) * item.quantity}
                   </Td>
                 </tr>
