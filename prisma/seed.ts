@@ -218,6 +218,9 @@ async function main() {
         name,
         role: "OWNER",
         passwordHash: await bcrypt.hash(password, 12),
+        // Sign-in requires a proven address, and there is nobody to email a
+        // code to the shop's first account — whoever runs the seed owns it.
+        emailVerifiedAt: new Date(),
       },
     });
     console.log(`\n  Owner account created`);

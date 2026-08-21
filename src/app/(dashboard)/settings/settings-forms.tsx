@@ -7,7 +7,12 @@ import { Loader } from "@/components/loader";
 import { Modal } from "@/components/modal";
 import { BrandSelect } from "@/components/select";
 import { Button, Card, Field, INPUT_CLASS } from "@/components/ui";
-import { changeEmail, changePassword, type AuthState } from "@/lib/actions/auth";
+import {
+  changeEmail,
+  changePassword,
+  confirmEmailChange,
+  type AuthState,
+} from "@/lib/actions/auth";
 import { createApiKey, type KeyState } from "@/lib/actions/api-keys";
 
 function Notice({ tone, children }: { tone: "error" | "ok"; children: React.ReactNode }) {
@@ -22,8 +27,64 @@ function Notice({ tone, children }: { tone: "error" | "ok"; children: React.Reac
   );
 }
 
+/**
+ * Changing the sign-in address takes two steps: the password proves it is you,
+ * and a code sent to the new address proves the address is yours. Nothing moves
+ * until the second one comes back, so a typo costs an undelivered email rather
+ * than an account that cannot sign in.
+ */
 export function EmailForm({ current }: { current: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(changeEmail, {});
+  const [confirmed, confirmAction, confirming] = useActionState<AuthState, FormData>(
+    confirmEmailChange,
+    {}
+  );
+
+  const pendingAddress = state.sentTo;
+
+  if (pendingAddress && !confirmed.ok) {
+    return (
+      <Card className="flex flex-col gap-5 p-6">
+        <div>
+          <h2 className="text-[18px] leading-[1.3]">Confirm your new email</h2>
+          <p className="mt-0.5 font-inter text-[14px] font-light italic text-brown">
+            We sent a six-digit code to {pendingAddress}. It is good for 15 minutes,
+            and the address does not change until you enter it.
+          </p>
+        </div>
+
+        <form action={confirmAction} className="flex max-w-sm flex-col gap-4">
+          <input type="hidden" name="email" value={pendingAddress} />
+
+          <Field label="Code">
+            <input
+              className={`${INPUT_CLASS} font-mono tracking-[0.3em]`}
+              name="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              maxLength={6}
+              required
+              autoFocus
+            />
+          </Field>
+
+          {confirmed.error && <Notice tone="error">{confirmed.error}</Notice>}
+
+          <Button type="submit" disabled={confirming}>
+            {confirming ? (
+              <>
+                <Loader size={14} />
+                Checking…
+              </>
+            ) : (
+              "Confirm email"
+            )}
+          </Button>
+        </form>
+      </Card>
+    );
+  }
 
   return (
     <Card className="flex flex-col gap-5 p-6">
@@ -58,13 +119,13 @@ export function EmailForm({ current }: { current: string }) {
         </Field>
 
         {state.error && <Notice tone="error">{state.error}</Notice>}
-        {state.ok && <Notice tone="ok">Email updated.</Notice>}
+        {confirmed.ok && <Notice tone="ok">Email updated.</Notice>}
 
         <Button type="submit" disabled={pending}>
           {pending ? (
             <>
               <Loader size={14} />
-              Saving…
+              Sending code…
             </>
           ) : (
             "Update email"

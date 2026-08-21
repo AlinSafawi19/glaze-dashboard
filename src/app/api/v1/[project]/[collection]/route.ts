@@ -97,7 +97,11 @@ export async function POST(
     // Optional: guests check out without one. The token is verified here rather
     // than trusting any customer id in the body.
     const customer = await customerFromToken(request.headers.get("X-Customer-Token"));
-    const order = await placeOrder(parsed.data, customer?.id ?? null);
+    const order = await placeOrder(
+      parsed.data,
+      customer?.id ?? null,
+      customer?.email ?? null
+    );
 
     // The basket has been bought; do not hand it back on the next visit.
     if (customer) await clearCart(customer.id);
@@ -112,6 +116,9 @@ export async function POST(
       phone: order.phone,
       address: order.address,
       city: order.city,
+      notes: order.notes,
+      payment: order.payment,
+      email: order.email,
       total: String(Number(order.total)),
       items: order.items.map((item) => ({
         title: item.title,

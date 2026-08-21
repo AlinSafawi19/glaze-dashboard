@@ -5,8 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@prisma/client";
 
-import { prisma } from "@/lib/prisma";
-import { SESSION_COOKIE, hashToken, readCookieClaims } from "@/lib/session";
+import { SESSION_COOKIE, userFromSessionToken } from "@/lib/session";
 
 export interface CurrentUser {
   id: string;
@@ -25,27 +24,7 @@ export interface CurrentUser {
  */
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const cookieStore = await cookies();
-  const claims = await readCookieClaims(cookieStore.get(SESSION_COOKIE)?.value);
-  if (!claims) return null;
-
-  const session = await prisma.session.findFirst({
-    where: {
-      id: claims.sessionId,
-      tokenHash: hashToken(claims.t),
-      revokedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-    select: {
-      user: {
-        select: { id: true, email: true, name: true, role: true, archivedAt: true },
-      },
-    },
-  });
-
-  if (!session?.user || session.user.archivedAt) return null;
-
-  const { id, email, name, role } = session.user;
-  return { id, email, name, role };
+  return userFromSessionToken(cookieStore.get(SESSION_COOKIE)?.value);
 });
 
 /** Use in pages and layouts: bounces to the login screen when signed out. */

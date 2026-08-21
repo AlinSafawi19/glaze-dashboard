@@ -74,6 +74,9 @@ const BRAND_STYLES: StylesConfig<SelectOption, boolean> = {
     color: "var(--color-brown)",
     ":hover": { backgroundColor: "var(--color-error)", color: "var(--color-white)" },
   }),
+  // The menu is portalled out to <body>, so it needs to sit above the header
+  // and any modal it is opened inside of.
+  menuPortal: (base) => ({ ...base, zIndex: 60 }),
   noOptionsMessage: (base) => ({ ...base, color: "var(--color-brown)", fontStyle: "italic" }),
   loadingMessage: (base) => ({ ...base, color: "var(--color-brown)", fontStyle: "italic" }),
 };
@@ -82,6 +85,14 @@ const BASE_PROPS = {
   styles: BRAND_STYLES,
   className: "font-inter text-[14px] font-light",
   menuPlacement: "auto" as const,
+  /**
+   * The menu is rendered into <body> rather than beside the control. A select
+   * that sits in a table cell would otherwise have its menu cut off by the
+   * table's own horizontal scroll container — which is exactly where the order
+   * status select lives.
+   */
+  menuPortalTarget: typeof document === "undefined" ? undefined : document.body,
+  menuPosition: "fixed" as const,
 };
 
 /**

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "react-datepicker/dist/react-datepicker.css";
 
 /*
  * The dashboard shares the storefront's identity: the same palette, the same
@@ -159,4 +160,85 @@
 .prose-glaze a {
   color: var(--color-plum);
   text-decoration: underline;
+}
+
+/*
+ * react-datepicker, wearing the shop's clothes: square corners, beige rules,
+ * plum for the chosen day and a blush wash across everything between the two
+ * ends of a range. The library ships its own stylesheet (imported above); this
+ * only overrides what would otherwise read as somebody else's component.
+ */
+.glaze-calendar,
+.glaze-calendar .react-datepicker__header {
+  border-radius: 0;
+  border-color: var(--color-beige);
+  background: var(--color-white);
+  font-family: var(--font-inter);
+}
+
+.glaze-calendar .react-datepicker__header {
+  border-bottom-color: var(--color-beige);
+  padding-top: 12px;
+}
+
+.glaze-calendar .react-datepicker__current-month,
+.glaze-calendar .react-datepicker__day-name {
+  font-family: var(--font-clash);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-brown);
+}
+
+.glaze-calendar .react-datepicker__current-month {
+  font-size: 13px;
+  color: var(--color-black);
+}
+
+.glaze-calendar .react-datepicker__day-name {
+  font-size: 10px;
+}
+
+.glaze-calendar .react-datepicker__day {
+  border-radius: 0;
+  font-weight: 300;
+  color: var(--color-black);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.glaze-calendar .react-datepicker__day:hover {
+  border-radius: 0;
+  background: var(--color-dusty);
+}
+
+.glaze-calendar .react-datepicker__day--in-range,
+.glaze-calendar .react-datepicker__day--in-selecting-range {
+  background: var(--color-blush);
+  color: var(--color-black);
+}
+
+.glaze-calendar .react-datepicker__day--selected,
+.glaze-calendar .react-datepicker__day--range-start,
+.glaze-calendar .react-datepicker__day--range-end,
+.glaze-calendar .react-datepicker__day--keyboard-selected {
+  border-radius: 0;
+  background: var(--color-black);
+  color: var(--color-accent);
+}
+
+.glaze-calendar .react-datepicker__day--disabled {
+  color: color-mix(in srgb, var(--color-brown) 40%, transparent);
+}
+
+.glaze-calendar .react-datepicker__day--outside-month {
+  color: color-mix(in srgb, var(--color-brown) 45%, transparent);
+}
+
+.glaze-calendar .react-datepicker__navigation-icon::before {
+  border-color: var(--color-brown);
+}
+
+/* The calendar is portalled to the end of <body>; it still has to sit above
+   the dashboard chrome and any react-select menu. */
+#date-range-portal .react-datepicker-popper {
+  z-index: 70;
 }

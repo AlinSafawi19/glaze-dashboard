@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { DateRangePicker } from "@/components/date-range";
 import { RevenueChart } from "@/components/revenue-chart";
+import { ClickableCopyableText } from "@/components/text";
 import { Badge, Card, EmptyState, PageHeader, Table, Td, Th } from "@/components/ui";
 import { requireUser } from "@/lib/dal";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/order-status";
@@ -211,15 +212,18 @@ export default async function OverviewPage({
         <RevenueChart points={series} />
       </Card>
 
-      <div className="grid gap-6 desktop:grid-cols-2">
-        <section>
+      {/* Both panels are flex columns so the table fills whatever height the
+          taller of the two sets — a two-line customer cell must not leave the
+          sellers card ending short of it. */}
+      <div className="grid items-stretch gap-6 desktop:grid-cols-2">
+        <section className="flex flex-col">
           <SectionTitle note="By units sold — the same figures behind the storefront badge.">
             Best sellers
           </SectionTitle>
           {sellers.length === 0 ? (
-            <EmptyState title="Nothing sold in this range" />
+            <EmptyState title="Nothing sold in this range" className="flex-1" />
           ) : (
-            <Table minWidth={420}>
+            <Table minWidth={420} className="flex-1">
               <thead>
                 <tr>
                   <Th />
@@ -262,14 +266,14 @@ export default async function OverviewPage({
           )}
         </section>
 
-        <section>
+        <section className="flex flex-col">
           <SectionTitle note="Accounts only — guest checkouts have no customer to rank.">
             Top clients
           </SectionTitle>
           {clients.length === 0 ? (
-            <EmptyState title="No account orders in this range" />
+            <EmptyState title="No account orders in this range" className="flex-1" />
           ) : (
-            <Table minWidth={420}>
+            <Table minWidth={420} className="flex-1">
               <thead>
                 <tr>
                   <Th>Customer</Th>
@@ -289,7 +293,7 @@ export default async function OverviewPage({
                         {client.name}
                       </Link>
                       <p className="font-inter text-[12px] font-light text-brown">
-                        {client.email}
+                        <ClickableCopyableText value={client.email} label="email address" />
                       </p>
                     </Td>
                     <Td className="text-brown">{client.city ?? "—"}</Td>

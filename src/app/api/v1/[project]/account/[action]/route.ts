@@ -4,15 +4,24 @@ import { bearerFrom, verifyApiKey } from "@/lib/api-key";
 import { corsHeaders, json } from "@/lib/cors";
 import {
   AccountError,
+  UnverifiedEmailError,
   customerFromToken,
   customerOrders,
+  forgotPasswordSchema,
   loginCustomer,
   loginSchema,
   profileSchema,
   registerCustomer,
   registerSchema,
+  resendSchema,
+  resendVerification,
+  requestPasswordReset,
+  resetCustomerPassword,
+  resetPasswordSchema,
   revokeSession,
   updateProfile,
+  verifyCustomerEmail,
+  verifySchema,
 } from "@/lib/customer-auth";
 import {
   cartSchema,
@@ -76,13 +85,37 @@ export async function POST(
 
   try {
     switch (action) {
+      /**
+       * Registering does not sign anyone in any more: it creates the account
+       * and emails a code. The storefront should send the shopper to its code
+       * screen and post it back to `verify`, which is what returns a session.
+       */
       case "register": {
         const parsed = registerSchema.safeParse(body);
         if (!parsed.success) {
           return json(request, { error: parsed.error.issues[0].message }, { status: 400 });
         }
-        const result = await registerCustomer(parsed.data, meta);
+        const result = await registerCustomer(parsed.data);
         return json(request, result, { status: 201 });
+      }
+
+      case "verify": {
+        const parsed = verifySchema.safeParse(body);
+        if (!parsed.success) {
+          return json(request, { error: "Enter the six-digit code we emailed you." }, { status: 400 });
+        }
+        return json(request, await verifyCustomerEmail(parsed.data, meta));
+      }
+
+      case "resend-code": {
+        const parsed = resendSchema.safeParse(body);
+        if (!parsed.success) {
+          return json(request, { error: parsed.error.issues[0].message }, { status: 400 });
+        }
+        await resendVerification(parsed.data.email);
+        // Deliberately the same answer whether or not there was an account to
+        // send to, so this cannot be used to test addresses.
+        return json(request, { ok: true }, { status: 202 });
       }
 
       case "login": {
@@ -92,6 +125,25 @@ export async function POST(
         }
         const result = await loginCustomer(parsed.data, meta);
         return json(request, result);
+      }
+
+      case "forgot-password": {
+        const parsed = forgotPasswordSchema.safeParse(body);
+        if (!parsed.success) {
+          return json(request, { error: parsed.error.issues[0].message }, { status: 400 });
+        }
+        await requestPasswordReset(parsed.data.email);
+        return json(request, { ok: true }, { status: 202 });
+      }
+
+      case "reset-password": {
+        const parsed = resetPasswordSchema.safeParse(body);
+        if (!parsed.success) {
+          return json(request, { error: parsed.error.issues[0].message }, { status: 400 });
+        }
+        await resetCustomerPassword(parsed.data);
+        // Every session was revoked; the shopper signs in with the new password.
+        return json(request, { ok: true });
       }
 
       case "logout": {
@@ -183,6 +235,15 @@ async function authorise(request: NextRequest, project: string): Promise<Respons
 }
 
 function handle(request: NextRequest, error: unknown, label: string): Response {
+  if (error instanceof UnverifiedEmailError) {
+    // The flag is the point: the storefront opens its code screen rather than
+    // showing this as a failed sign-in.
+    return json(
+      request,
+      { error: error.message, verificationRequired: true },
+      { status: error.status }
+    );
+  }
   if (error instanceof AccountError) {
     return json(request, { error: error.message }, { status: error.status });
   }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { OrderStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { pushOrderChanged } from "@/lib/realtime";
 import { requireOwner, requireUserForAction } from "@/lib/dal";
 import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/order-status";
 
@@ -27,6 +28,10 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
   if (order.archivedAt) throw new Error("Restore this order before changing its status.");
 
   await prisma.order.update({ where: { id }, data: { status } });
+
+  // Two people often work the order list at once; tell the other tabs so they
+  // do not sit on a status that has already moved.
+  pushOrderChanged(id, status);
   refresh(id);
 }
 

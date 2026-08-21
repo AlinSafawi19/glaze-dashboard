@@ -9,6 +9,7 @@ import { archiveOrder, deleteOrder, restoreOrder } from "@/lib/actions/orders";
 import { getCurrentUser } from "@/lib/dal";
 import { STATUS_LABEL, STATUS_TONE } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
+import { ClickableCopyableText, CopyableText } from "@/components/text";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -148,21 +149,27 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {/* The number staff dial most often, so it wears full ink. The
                 accent pink this used to be sits near 2:1 on white — decorative
                 weight on the one field that has to be readable at a glance. */}
-            <a href={`tel:${order.phone}`} className="text-black underline">
-              {order.phone}
-            </a>
+            <ClickableCopyableText value={order.phone} label="phone number" />
           </Detail>
-          <Detail label="Address">{order.address}</Detail>
+          <Detail label="Address">
+            {/* Copied straight into the courier's form, so it is one click
+                rather than a careful drag across two lines. */}
+            <CopyableText value={order.address} label="address" />
+          </Detail>
           <Detail label="City">{order.city}</Detail>
           <Detail label="Payment">{order.payment}</Detail>
+          {order.email && (
+            <Detail label="Email">
+              <ClickableCopyableText value={order.email} label="email address" />
+            </Detail>
+          )}
           <Detail label="Account">
             {order.customer ? (
-              <Link
+              <ClickableCopyableText
+                value={order.customer.email}
                 href={`/customers/${order.customer.id}`}
-                className="text-plum underline"
-              >
-                {order.customer.email}
-              </Link>
+                label="email address"
+              />
             ) : (
               "Guest checkout"
             )}

@@ -7,6 +7,7 @@ import { Badge, EmptyState, LinkButton, PageHeader, Table, Td, Th } from "@/comp
 import { archiveCustomer, restoreCustomer } from "@/lib/actions/customers";
 import { getCurrentUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
+import { ClickableCopyableText } from "@/components/text";
 
 export const metadata: Metadata = { title: "Customers" };
 
@@ -128,7 +129,7 @@ export default async function CustomersPage({
                       {customer.name}
                     </Link>
                     <p className="font-inter text-[12px] font-light text-brown">
-                      {customer.email}
+                      <ClickableCopyableText value={customer.email} label="email address" />
                     </p>
                     {customer.archivedAt && (
                       <span className="mt-1 inline-block">
@@ -136,7 +137,13 @@ export default async function CustomersPage({
                       </span>
                     )}
                   </Td>
-                  <Td className="text-brown">{customer.phone ?? "—"}</Td>
+                  <Td className="text-brown">
+                    {customer.phone ? (
+                      <ClickableCopyableText value={customer.phone} label="phone number" />
+                    ) : (
+                      "—"
+                    )}
+                  </Td>
                   <Td className="text-brown">{customer.city ?? "—"}</Td>
                   <Td className="text-brown tabular-nums">{customer._count.orders}</Td>
                   <Td className="tabular-nums">${spent}</Td>

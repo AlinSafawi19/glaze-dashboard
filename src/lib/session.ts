@@ -1,32 +1,33 @@
 import "server-only";
 
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose";
 
 import { prisma } from "@/lib/prisma";
+import {
+  REMEMBERED_TTL_MS,
+  SESSION_COOKIE,
+  SESSION_TTL_MS,
+  hashToken,
+  readCookieClaims,
+  sessionSecret,
+} from "@/lib/session-token";
 
-export const SESSION_COOKIE = "glaze_session";
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/**
+ * Writing sessions. Reading them is in `@/lib/session-token`, which the custom
+ * server also uses to authorise socket handshakes; it is re-exported here so
+ * the rest of the app has one place to import from.
+ */
 
-function secret(): Uint8Array {
-  const value = process.env.SESSION_SECRET;
-  if (!value || value.length < 32) {
-    throw new Error(
-      "SESSION_SECRET is missing or shorter than 32 characters. See .env.example."
-    );
-  }
-  return new TextEncoder().encode(value);
-}
-
-export function hashToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
-}
-
-export interface SessionClaims {
-  userId: string;
-  sessionId: string;
-}
+export {
+  SESSION_COOKIE,
+  hashToken,
+  readCookieClaims,
+  userFromSessionToken,
+  type SessionClaims,
+  type SessionUser,
+} from "@/lib/session-token";
 
 /**
  * The cookie carries a signed JWT, but the row in `Session` is what actually
@@ -35,9 +36,15 @@ export interface SessionClaims {
  */
 export async function createSession(
   userId: string,
-  meta: { ipAddress?: string | null; userAgent?: string | null } = {}
+  meta: {
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    /** The "remember me" tick on the sign-in form. */
+    remember?: boolean;
+  } = {}
 ): Promise<void> {
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  const remember = meta.remember ?? false;
+  const expiresAt = new Date(Date.now() + (remember ? REMEMBERED_TTL_MS : SESSION_TTL_MS));
   const rawToken = randomBytes(32).toString("hex");
 
   const session = await prisma.session.create({
@@ -55,36 +62,18 @@ export async function createSession(
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(expiresAt)
-    .sign(secret());
+    .sign(sessionSecret());
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, jwt, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    expires: expiresAt,
+    // No `expires` when not remembered: the cookie goes when the browser does,
+    // which is what someone signing in on a shared machine expects.
+    ...(remember ? { expires: expiresAt } : {}),
     path: "/",
   });
-}
-
-/** Signature-only check. Cheap enough for the proxy; not proof of authority. */
-export async function readCookieClaims(
-  token: string | undefined
-): Promise<(SessionClaims & { t: string }) | null> {
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
-    if (typeof payload.userId !== "string" || typeof payload.sessionId !== "string") {
-      return null;
-    }
-    return {
-      userId: payload.userId,
-      sessionId: payload.sessionId,
-      t: String(payload.t ?? ""),
-    };
-  } catch {
-    return null;
-  }
 }
 
 export async function destroySession(): Promise<void> {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
+import { io, type Socket } from "socket.io-client";
 
 import { cx } from "@/components/ui";
 
@@ -17,7 +18,12 @@ interface Item {
   createdAt: string;
 }
 
-const POLL_MS = 15_000;
+/**
+ * Arrivals come over the socket, so this is only a safety net: a dropped
+ * connection, a socket server that is not running, a tab that slept. A minute
+ * is often enough to notice something the push missed.
+ */
+const POLL_MS = 60_000;
 
 /**
  * Plays a short two-note chime through the Web Audio API rather than shipping
@@ -128,6 +134,41 @@ export function NotificationBell() {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [poll]);
+
+  /**
+   * The live channel. The session cookie rides along with the handshake, so the
+   * server can refuse a socket exactly as it would refuse a page; a refusal is
+   * not worth surfacing, because polling carries on regardless.
+   */
+  useEffect(() => {
+    const socket: Socket = io({ path: "/socket.io", withCredentials: true });
+
+    socket.on("notification", (item: Item) => {
+      setItems((list) =>
+        list.some((existing) => existing.id === item.id)
+          ? list
+          : [item, ...list].slice(0, 12)
+      );
+      if (!item.readAt) setUnread((n) => n + 1);
+
+      newestSeen.current = item.id;
+      chime();
+      // A new order changes the sidebar's pending count and the orders list.
+      router.refresh();
+    });
+
+    // Somebody else moved an order along; lists and counts are now stale.
+    socket.on("order:changed", () => router.refresh());
+
+    // Whatever happened while the socket was down is caught by one poll.
+    socket.on("connect", () => {
+      if (primed.current) void poll();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [chime, poll, router]);
 
   useEffect(() => {
     if (!open) return;

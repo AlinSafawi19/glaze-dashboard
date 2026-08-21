@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Link from "next/link";
 
 import { Loader } from "@/components/loader";
 import { Button, Card, Field, INPUT_CLASS } from "@/components/ui";
@@ -42,10 +43,39 @@ export function LoginForm() {
           />
         </Field>
 
+        <div className="flex items-center justify-between gap-3">
+          <label className="flex cursor-pointer items-center gap-2">
+            <input
+              type="checkbox"
+              name="remember"
+              value="on"
+              className="h-4 w-4 accent-[var(--color-plum)]"
+            />
+            <span className="font-inter text-[13px] font-light text-brown">
+              Stay signed in
+            </span>
+          </label>
+
+          <Link
+            href="/forgot-password"
+            className="font-inter text-[13px] font-light text-plum underline-offset-4 hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
         {state.error && (
-          <p className="bg-danger-soft px-3 py-2 font-inter text-[14px] font-light text-error">
-            {state.error}
-          </p>
+          <div className="bg-danger-soft px-3 py-2 font-inter text-[14px] font-light text-error">
+            <p>{state.error}</p>
+            {state.verifyEmail && (
+              <Link
+                href={`/verify-email?email=${encodeURIComponent(state.verifyEmail)}`}
+                className="mt-1 inline-block text-plum underline underline-offset-4"
+              >
+                Enter the code
+              </Link>
+            )}
+          </div>
         )}
 
         <Button type="submit" disabled={pending} className="mt-1">

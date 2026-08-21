@@ -111,7 +111,8 @@ export function PageHeader({
   action,
 }: {
   title: string;
-  subtitle?: string;
+  /** Usually a line of text, but a page may hand it something to click. */
+  subtitle?: ReactNode;
   action?: ReactNode;
 }) {
   return (
@@ -119,9 +120,9 @@ export function PageHeader({
       <div>
         <h1 className="text-[28px] leading-[1.2] text-black tablet:text-[32px]">{title}</h1>
         {subtitle && (
-          <p className="mt-1.5 font-inter text-[14px] font-light italic text-brown">
+          <div className="mt-1.5 font-inter text-[14px] font-light italic text-brown">
             {subtitle}
-          </p>
+          </div>
         )}
       </div>
       {action}
@@ -156,13 +157,21 @@ export function EmptyState({
   title,
   description,
   action,
+  className,
 }: {
   title: string;
   description?: string;
   action?: ReactNode;
+  /** For a panel that has to fill the height of the one beside it. */
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 border border-dashed border-beige bg-dusty px-6 py-14 text-center">
+    <div
+      className={cx(
+        "flex flex-col items-center justify-center gap-3 border border-dashed border-beige bg-dusty px-6 py-14 text-center",
+        className
+      )}
+    >
       <p className="label-sm text-black">{title}</p>
       {description && (
         <p className="max-w-sm font-inter text-[14px] font-light italic text-brown [text-wrap:balance]">
@@ -177,6 +186,7 @@ export function EmptyState({
 export function Table({
   children,
   minWidth = 640,
+  className,
 }: {
   children: ReactNode;
   /**
@@ -185,9 +195,11 @@ export function Table({
    * out of sight instead of wrapping it.
    */
   minWidth?: number;
+  /** For a table that has to fill the height of the panel beside it. */
+  className?: string;
 }) {
   return (
-    <div className="overflow-x-auto border border-beige bg-white">
+    <div className={cx("overflow-x-auto border border-beige bg-white", className)}>
       <table
         className="w-full border-collapse font-inter text-[14px] font-light"
         style={{ minWidth }}

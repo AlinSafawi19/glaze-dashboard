@@ -236,6 +236,9 @@ model Order {
   city    String  @db.VarChar(120)
   notes   String? @db.VarChar(2000)
   payment String  @default("Cash on delivery") @db.VarChar(60)
+  /// Where the confirmation goes. Optional because a guest may not leave one,
+  /// and kept on the order itself so it survives the account being deleted.
+  email   String? @db.VarChar(255)
 
   /// Order total in store currency, frozen at checkout.
   total  Decimal     @db.Decimal(10, 2)
@@ -299,6 +302,10 @@ model Customer {
   address String? @db.VarChar(500)
   city    String? @db.VarChar(120)
 
+  /// Set the moment the emailed code is accepted. Null means the address has
+  /// not been proven yet, which blocks sign-in.
+  emailVerifiedAt DateTime?
+
   lastLoginAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -310,6 +317,7 @@ model Customer {
   sessions CustomerSession[]
   cart     CartItem[]
   wishlist WishlistItem[]
+  codes    VerificationCode[]
 
   @@index([archivedAt])
   @@index([createdAt])
@@ -403,14 +411,59 @@ model User {
   name         String    @db.VarChar(120)
   passwordHash String
   role         UserRole  @default(STAFF)
+  /// Set when the emailed code is accepted. An account created by an owner
+  /// cannot sign in until the person behind the address proves they have it.
+  /// Accounts that predate this were backfilled as verified.
+  emailVerifiedAt DateTime?
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   archivedAt   DateTime?
 
   sessions Session[]
+  codes    VerificationCode[]
 
   @@index([archivedAt])
+}
+
+/// What a one-time code is for. Both flows share one table because they share
+/// their whole shape: a hashed six-digit code, an expiry, and one use.
+enum CodePurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+/**
+ * Emailed codes for verifying an address and for resetting a password, on both
+ * sides of the app — dashboard staff and storefront shoppers.
+ *
+ * Only the hash is stored, exactly like a session token: a leaked database must
+ * not hand someone a working code. `email` is what the lookup runs on, so a
+ * reset can be requested for an address that turns out not to exist without the
+ * response giving that away.
+ */
+model VerificationCode {
+  id       String      @id @default(cuid())
+  email    String      @db.VarChar(255)
+  purpose  CodePurpose
+  codeHash String
+
+  /// Whichever side of the app the code belongs to; never both.
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  /// Guessing is rate-limited by burning the code after a few wrong tries.
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, purpose])
+  @@index([expiresAt])
+  @@index([userId])
+  @@index([customerId])
 }
 
 model Session {

@@ -17,6 +17,8 @@ import { SESSION_COOKIE, readCookieClaims } from "@/lib/session";
  * Sending an already-signed-in visitor to the dashboard is the login page's
  * job, where the session can actually be verified.
  */
+const PUBLIC_PAGES = ["/login", "/forgot-password", "/verify-email"];
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -25,7 +27,9 @@ export async function proxy(request: NextRequest) {
   // refusal it can actually branch on.
   if (pathname.startsWith("/api/")) return NextResponse.next();
 
-  if (pathname === "/login") return NextResponse.next();
+  // Everything a signed-out person legitimately needs: signing in, and the two
+  // screens that exist precisely because they cannot.
+  if (PUBLIC_PAGES.includes(pathname)) return NextResponse.next();
 
   const claims = await readCookieClaims(request.cookies.get(SESSION_COOKIE)?.value);
   if (claims) return NextResponse.next();

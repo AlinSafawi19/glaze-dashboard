@@ -12,6 +12,9 @@ import { prisma } from "@/lib/prisma";
 export const checkoutSchema = z.object({
   Name: z.string().trim().min(1, "Name is required.").max(160),
   Phone: z.string().trim().min(1, "Phone is required.").max(60),
+  /// Optional: a guest may not leave one. When it is there, the shopper gets a
+  /// confirmation; a signed-in shopper falls back to their account address.
+  Email: z.string().trim().toLowerCase().email("That email does not look right.").max(255).optional(),
   Address: z.string().trim().min(1, "Address is required.").max(500),
   City: z.string().trim().min(1, "City is required.").max(120),
   Notes: z.string().trim().max(2000).optional().default(""),
@@ -52,7 +55,12 @@ export class CheckoutError extends Error {}
  * caller cannot file an order against somebody else's account. It stays
  * optional because guest checkout is still open.
  */
-export async function placeOrder(input: CheckoutInput, customerId: string | null = null) {
+export async function placeOrder(
+  input: CheckoutInput,
+  customerId: string | null = null,
+  /** The signed-in shopper's address, used when the payload leaves none. */
+  accountEmail: string | null = null
+) {
   const requested =
     typeof input.Items === "string" ? parseLegacyItems(input.Items) : input.Items;
 
@@ -107,6 +115,7 @@ export async function placeOrder(input: CheckoutInput, customerId: string | null
       city: input.City,
       notes: input.Notes || null,
       payment: input.Payment || "Cash on delivery",
+      email: input.Email || accountEmail,
       total: total.toFixed(2),
       customerId,
       items: { create: lines },
@@ -120,6 +129,9 @@ export async function placeOrder(input: CheckoutInput, customerId: string | null
       phone: true,
       address: true,
       city: true,
+      notes: true,
+      payment: true,
+      email: true,
       items: { select: { title: true, quantity: true, unitPrice: true } },
     },
   });

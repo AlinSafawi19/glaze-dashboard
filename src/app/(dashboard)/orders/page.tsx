@@ -8,6 +8,7 @@ import { Badge, EmptyState, LinkButton, PageHeader, Table, Td, Th } from "@/comp
 import { archiveOrder, restoreOrder } from "@/lib/actions/orders";
 import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/order-status";
 import { prisma } from "@/lib/prisma";
+import { ClickableCopyableText } from "@/components/text";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -118,7 +119,9 @@ export default async function OrdersPage({
                   </Td>
                   <Td>
                     <p className="font-medium">{order.name}</p>
-                    <p className="text-xs text-muted">{order.phone}</p>
+                    <p className="text-xs text-muted">
+                      <ClickableCopyableText value={order.phone} label="phone number" />
+                    </p>
                   </Td>
                   <Td className="text-muted">{order.city}</Td>
                   <Td className="text-muted">
