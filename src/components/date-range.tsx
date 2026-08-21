@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import DatePicker from "react-datepicker";
+import { shift } from "@floating-ui/react";
 import { CalendarDays } from "lucide-react";
 
 import { Loader } from "@/components/loader";
@@ -49,6 +50,28 @@ function daysAgo(n: number): string {
   return iso(date);
 }
 
+/**
+ * Two months side by side are about 600px wide. Below that no amount of
+ * nudging keeps the second one on screen, so the calendar drops to one month
+ * rather than hanging off the edge.
+ */
+function useMonthsShown(): number {
+  // Starts at 2 so the server and the first client render agree; the calendar
+  // is closed at that point, so nothing visibly changes when this corrects.
+  const [months, setMonths] = useState(2);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 700px)");
+    const update = () => setMonths(query.matches ? 2 : 1);
+
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return months;
+}
+
 export function DateRangePicker({ from, to }: { from: string; to: string }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -57,6 +80,7 @@ export function DateRangePicker({ from, to }: { from: string; to: string }) {
 
   const [start, setStart] = useState<Date | null>(parse(from));
   const [end, setEnd] = useState<Date | null>(parse(to));
+  const monthsShown = useMonthsShown();
 
   // Keep in step when the range changes from a preset or the back button.
   useEffect(() => setStart(parse(from)), [from]);
@@ -113,14 +137,19 @@ export function DateRangePicker({ from, to }: { from: string; to: string }) {
               endDate={end ?? undefined}
               maxDate={new Date()}
               dateFormat="dd MMM yyyy"
-              monthsShown={2}
+              monthsShown={monthsShown}
               showPopperArrow={false}
               // The overview sits inside scrolling panels; the calendar belongs
               // over them, not clipped by one.
               portalId="date-range-portal"
+              // The field sits at the right of the toolbar, and the default
+              // middleware is offset + flip — which only ever moves the popup
+              // up or down. Without `shift` a two-month calendar opening from
+              // there simply runs off the right of the window.
+              popperModifiers={[shift({ padding: 8 })]}
               calendarClassName="glaze-calendar"
               placeholderText="Pick two dates"
-              className="w-[230px] rounded-none border border-beige bg-white py-1.5 pl-8 pr-2.5 font-inter text-[13px] font-light text-black focus:border-black focus:outline-none"
+              className="w-[230px] cursor-pointer rounded-none border border-beige bg-white py-1.5 pl-8 pr-2.5 font-inter text-[13px] font-light text-black focus:border-black focus:outline-none"
               onChange={(dates) => {
                 const [nextStart, nextEnd] = dates as [Date | null, Date | null];
                 setStart(nextStart);

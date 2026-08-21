@@ -52,8 +52,11 @@ export function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Blush rather than plum: the dialog only has to be lifted off the page,
+          not the page hidden behind it. A slight blur does the separating that
+          a heavy wash used to, so the overlay can stay pale. */}
       <div
-        className="absolute inset-0 bg-plum/60"
+        className="absolute inset-0 bg-blush/60 backdrop-blur-[2px]"
         aria-hidden
         onClick={onClose}
       />

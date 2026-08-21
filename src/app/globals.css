@@ -237,8 +237,21 @@
   border-color: var(--color-brown);
 }
 
+/* A day you cannot pick should not offer a pointer. */
+.glaze-calendar .react-datepicker__day--disabled {
+  cursor: not-allowed;
+}
+
 /* The calendar is portalled to the end of <body>; it still has to sit above
    the dashboard chrome and any react-select menu. */
 #date-range-portal .react-datepicker-popper {
   z-index: 70;
+}
+
+/* Narrow windows scroll the two-month calendar rather than letting it spill
+   past the edge, which `shift` alone cannot prevent once it is wider than the
+   viewport. */
+#date-range-portal .react-datepicker {
+  max-width: calc(100vw - 16px);
+  overflow-x: auto;
 }
