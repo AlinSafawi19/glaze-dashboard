@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { ActionButton } from "@/components/confirm-button";
-import { Filters, type FilterSpec } from "@/components/filters";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
 import {
@@ -35,7 +34,6 @@ export default async function CustomersPage({
   searchParams: Promise<{
     archived?: string;
     q?: string;
-    city?: string;
     page?: string;
     show?: string;
   }>;
@@ -47,7 +45,6 @@ export default async function CustomersPage({
 
   const where = {
     ...(showArchived ? {} : { archivedAt: null }),
-    ...(params.city ? { city: params.city } : {}),
     ...(search
       ? {
           OR: [
@@ -85,17 +82,6 @@ export default async function CustomersPage({
     getCurrentUser(),
   ]);
 
-  const filters: FilterSpec[] = [
-    {
-      param: "city",
-      label: "City",
-      source: "customerCity",
-      value: params.city ?? null,
-      // Stored as text on the customer, so the value is its own label.
-      valueLabel: params.city ?? null,
-    },
-  ];
-
   return (
     <>
       <PageHeader
@@ -125,8 +111,6 @@ export default async function CustomersPage({
 
         <SearchInput placeholder="Search name, email or phone" />
       </div>
-
-      <Filters filters={filters} />
 
       {customers.length === 0 ? (
         <EmptyState

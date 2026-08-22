@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  HERO_IMAGE,
   codeBlock,
   definitionList,
   escapeHtml,
@@ -41,7 +42,8 @@ export function orderPlacedOwner(order: OrderEmailData, to: string): OutgoingEma
     subject: `New order #${order.number} — ${money(order.total)}`,
     html: shell({
       preheader: `${order.name} · ${units} ${units === 1 ? "item" : "items"} · ${order.city}`,
-      heading: `New order #${order.number}`,
+      eyebrow: "New order",
+      heading: `#${order.number} — ${order.name}`,
       body: [
         itemsTable(order.items, order.total),
         heading("Deliver to"),
@@ -68,13 +70,13 @@ export function orderPlacedCustomer(order: OrderEmailData, to: string): Outgoing
     to,
     subject: `Your Glaze order #${order.number}`,
     html: shell({
+      hero: { src: HERO_IMAGE, alt: "" },
       preheader: `We have your order — ${money(order.total)}, paid ${order.payment.toLowerCase()}.`,
+      eyebrow: `Order #${order.number}`,
       heading: `Thank you, ${firstName}`,
       body: [
-        paragraph(
-          `Your order is in. We will call ${order.phone} to confirm before it goes out for delivery.`
-        ),
-        heading(`Order #${order.number}`),
+        paragraph("Your order is in and we are getting it ready for delivery."),
+        heading("What you ordered"),
         itemsTable(order.items, order.total),
         heading("Delivering to"),
         definitionList([
@@ -106,6 +108,7 @@ export function contactMessage(
     replyTo: message.email,
     html: shell({
       preheader: message.message.slice(0, 120),
+      eyebrow: "Say hello",
       heading: "Someone said hello",
       body: [
         definitionList([
@@ -137,7 +140,9 @@ export function verificationCode(data: CodeEmailData, to: string): OutgoingEmail
     to,
     subject: `${data.code} is your Glaze verification code`,
     html: shell({
+      centered: true,
       preheader: `Your code is ${data.code}. It expires in ${data.minutes} minutes.`,
+      eyebrow: "Verify your email",
       heading: firstName ? `Welcome, ${firstName}` : "Confirm your email",
       body: [
         paragraph("Enter this code to confirm your email address:"),
@@ -156,7 +161,9 @@ export function passwordResetCode(data: CodeEmailData, to: string): OutgoingEmai
     to,
     subject: `${data.code} is your Glaze password reset code`,
     html: shell({
+      centered: true,
       preheader: `Your reset code is ${data.code}. It expires in ${data.minutes} minutes.`,
+      eyebrow: "Password reset",
       heading: "Reset your password",
       body: [
         paragraph("Use this code to choose a new password:"),
@@ -176,6 +183,7 @@ export function passwordChanged(to: string, when: Date): OutgoingEmail {
     subject: "Your Glaze password was changed",
     html: shell({
       preheader: "If this was not you, get in touch straight away.",
+      eyebrow: "Security",
       heading: "Your password was changed",
       body: [
         paragraph(

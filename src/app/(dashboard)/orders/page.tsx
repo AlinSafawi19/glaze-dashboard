@@ -3,9 +3,9 @@ import Link from "next/link";
 import type { OrderStatus } from "@prisma/client";
 
 import { ActionButton } from "@/components/confirm-button";
-import { Filters, type FilterSpec } from "@/components/filters";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
+import { StatusFilter } from "@/components/status-filter";
 import { StatusSelect } from "@/components/status-select";
 import {
   Badge,
@@ -18,7 +18,7 @@ import {
   Th,
 } from "@/components/ui";
 import { archiveOrder, restoreOrder } from "@/lib/actions/orders";
-import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/order-status";
+import { ORDER_STATUSES } from "@/lib/order-status";
 import { readWindow } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { ClickableCopyableText } from "@/components/text";
@@ -39,8 +39,6 @@ export default async function OrdersPage({
     status?: string;
     archived?: string;
     q?: string;
-    city?: string;
-    payment?: string;
     page?: string;
     show?: string;
   }>;
@@ -58,8 +56,6 @@ export default async function OrdersPage({
   const where = {
     ...(showArchived ? {} : { archivedAt: null }),
     ...(filter ? { status: filter } : {}),
-    ...(params.city ? { city: params.city } : {}),
-    ...(params.payment ? { payment: params.payment } : {}),
     ...(search
       ? {
           OR: [
@@ -75,7 +71,7 @@ export default async function OrdersPage({
       : {}),
   };
 
-  const [orders, total, counts, payments] = await Promise.all([
+  const [orders, total, counts] = await Promise.all([
     prisma.order.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -89,34 +85,11 @@ export default async function OrdersPage({
       where: { archivedAt: null },
       _count: true,
     }),
-    // Short and fixed in practice, so the payment filter is a plain list.
-    prisma.order.findMany({
-      distinct: ["payment"],
-      orderBy: { payment: "asc" },
-      select: { payment: true },
-      take: 20,
-    }),
   ]);
 
-  const countFor = (s: OrderStatus) => counts.find((c) => c.status === s)?._count ?? 0;
-
-  const filters: FilterSpec[] = [
-    {
-      param: "city",
-      label: "City",
-      source: "orderCity",
-      value: params.city ?? null,
-      // Cities are stored on the order as text, so the value is its own label.
-      valueLabel: params.city ?? null,
-    },
-    {
-      param: "payment",
-      label: "Payment",
-      options: payments.map((row) => ({ value: row.payment, label: row.payment })),
-      value: params.payment ?? null,
-      valueLabel: params.payment ?? null,
-    },
-  ];
+  const statusCounts = Object.fromEntries(
+    counts.map((row) => [row.status, row._count])
+  ) as Partial<Record<OrderStatus, number>>;
 
   return (
     <>
@@ -127,29 +100,6 @@ export default async function OrdersPage({
 
       <FilterBar>
         <Link
-          href="/orders"
-          className={filter ? "text-brown hover:text-black" : "text-black underline underline-offset-4"}
-        >
-          All
-        </Link>
-        {ORDER_STATUSES.map((value) => (
-          <Link
-            key={value}
-            href={`/orders?status=${value}`}
-            className={
-              filter === value
-                ? "text-black underline underline-offset-4"
-                : "text-brown hover:text-black"
-            }
-          >
-            {STATUS_LABEL[value]}
-            {countFor(value) > 0 && (
-              <span className="ml-1 text-brown">({countFor(value)})</span>
-            )}
-          </Link>
-        ))}
-        <span className="text-beige">|</span>
-        <Link
           href={showArchived ? "/orders" : "/orders?archived=1"}
           className={showArchived ? "text-black underline underline-offset-4" : "text-brown hover:text-black"}
         >
@@ -157,11 +107,14 @@ export default async function OrdersPage({
         </Link>
       </FilterBar>
 
-      <div className="mb-4">
-        <SearchInput placeholder="Search name, phone, email, city or #number" />
+      {/* Search and status sit on one line: they are the two ways into this
+          list, and splitting them over two rows read as two unrelated tools. */}
+      <div className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center">
+        <div className="tablet:flex-1">
+          <SearchInput placeholder="Search name, phone, email, city or #number" />
+        </div>
+        <StatusFilter value={filter} counts={statusCounts} />
       </div>
-
-      <Filters filters={filters} />
 
       {orders.length === 0 ? (
         <EmptyState
