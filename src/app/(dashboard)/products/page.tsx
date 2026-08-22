@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 
 import { ActionButton } from "@/components/confirm-button";
 import { Filters, type FilterSpec } from "@/components/filters";
 import { Pagination } from "@/components/pagination";
+import { ProductImages } from "@/components/product-images";
 import { SearchInput } from "@/components/search-input";
 import { TransferButtons } from "@/components/transfer-buttons";
 import {
@@ -229,29 +229,27 @@ export default async function ProductsPage({
             return (
               <Card key={product.id} className="flex flex-col overflow-hidden">
                 {/* Artwork first: this is a catalogue, and the picture is how
-                    anyone actually recognises the product they came for. */}
-                <div className="relative aspect-[4/3] w-full border-b border-beige bg-dusty">
-                  {product.coverImage ? (
-                    <Image
-                      src={product.coverImage}
-                      alt=""
-                      fill
-                      unoptimized
-                      sizes="(min-width: 1200px) 33vw, (min-width: 810px) 50vw, 100vw"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center label-sm text-brown">
-                      No image
-                    </div>
-                  )}
+                    anyone actually recognises the product they came for. All
+                    four slots are steppable, so a wrong or missing extra image
+                    shows up here rather than only in the editor. */}
+                <div className="relative">
+                  <ProductImages
+                    images={[
+                      product.coverImage,
+                      product.image2,
+                      product.image3,
+                      product.image4,
+                    ].filter((src): src is string => Boolean(src && src.trim()))}
+                    title={product.title}
+                    className="aspect-[4/3] w-full"
+                  />
 
                   {(bestSellers.has(product.id) ||
                     product.isLimited ||
                     product.isNewIn ||
                     product.discount > 0 ||
                     product.archivedAt) && (
-                    <div className="absolute left-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-1">
+                    <div className="pointer-events-none absolute left-2 top-2 z-10 flex max-w-[calc(100%-1rem)] flex-wrap gap-1">
                       {product.archivedAt && <Badge tone="warn">Archived</Badge>}
                       {bestSellers.has(product.id) && <Badge tone="success">Best seller</Badge>}
                       {product.isLimited && <Badge tone="warn">Limited</Badge>}
