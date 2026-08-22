@@ -275,7 +275,13 @@ export function BrandAsyncSelect({
         instanceId={instanceId}
         inputId={`${instanceId}-input`}
         cacheOptions={!source}
-        defaultOptions={options}
+        // `true` is what tells react-select to call `loadOptions("")` itself and
+        // fill the menu before anything is typed. An array instead *is* the
+        // whole pre-typing menu — fine for a form handed the full list up
+        // front, but a filter passes only its own current selection, so the
+        // menu opened empty and read "Nothing matches" until you guessed a
+        // letter that narrowed something you could not see.
+        defaultOptions={source ? true : options}
         loadOptions={loadOptions}
         value={value}
         onChange={(next) => {
