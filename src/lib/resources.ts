@@ -107,7 +107,7 @@ export const RESOURCES: Record<ResourceKey, ResourceConfig> = {
     label: "Collection",
     plural: "Collections",
     description:
-      "Merchandising groups. The one slugged “offers” drives the Offers section on the home page.",
+      "Merchandising groups a product can be filed under, such as a bundle or a seasonal edit.",
     apiSlug: "collections",
     productCount: true,
     fields: [

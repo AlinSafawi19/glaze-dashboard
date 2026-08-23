@@ -243,7 +243,12 @@ export function ProductForm({
                   required
                 />
               </Field>
-              <Field label="Discount %">
+              {/* The storefront's Offers section is every product carrying a
+                  discount — there is no collection to file one under. */}
+              <Field
+                label="Discount %"
+                hint="Anything above 0 also puts the product in Offers."
+              >
                 <input
                   name="discount"
                   className={INPUT_CLASS}
