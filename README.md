@@ -24,7 +24,7 @@ npm install
 cp .env.example .env      # then fill in SESSION_SECRET — see below
 npm run db:up             # Postgres 16 in Docker, host port 5435
 npm run db:deploy         # apply migrations
-npm run db:seed           # catalogue, owner account, storefront API key
+npm run db:seed           # taxonomies, pages, owner account, storefront API key
 npm run dev               # http://localhost:3002
 ```
 
@@ -35,10 +35,11 @@ characters:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-The seed prints the owner password and the storefront API key **once** if you
-left `SEED_OWNER_PASSWORD` and `SEED_API_KEY` blank — copy them out of that
-output. Set them in `.env` instead if you want stable values across resets.
-Seeding upserts by slug, so re-running it is safe.
+The seed mints the storefront API key and prints it **once** — copy it out of
+that output, it is stored only as a hash. The owner password is printed the
+same way if you left `SEED_OWNER_PASSWORD` blank; set it in `.env` instead to
+keep a stable value across resets. Seeding upserts by slug, so re-running it is
+safe.
 
 ### Environment
 
