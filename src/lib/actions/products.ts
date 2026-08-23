@@ -32,8 +32,13 @@ function relation(formData: FormData, key: string): string | null {
 type ProductFields = Omit<Prisma.ProductUncheckedCreateInput, "slug" | "sku">;
 
 type Parsed =
-  | { ok: true; data: ProductFields; skinTypeIds: string[] }
+  | { ok: true; data: ProductFields; categoryIds: string[]; skinTypeIds: string[] }
   | { ok: false; error: string };
+
+/** A multi-select posts one entry per pick, or none at all when it is empty. */
+function relations(formData: FormData, key: string): string[] {
+  return [...new Set(formData.getAll(key).map(String).filter(Boolean))];
+}
 
 function parse(formData: FormData): Parsed {
   const title = text(formData, "title");
@@ -72,10 +77,10 @@ function parse(formData: FormData): Parsed {
       isNewIn: checked(formData, "isNewIn"),
       isLimited: checked(formData, "isLimited"),
       brandId: relation(formData, "brandId"),
-      categoryId: relation(formData, "categoryId"),
       collectionId: relation(formData, "collectionId"),
     },
-    skinTypeIds: formData.getAll("skinTypeIds").map(String).filter(Boolean),
+    categoryIds: relations(formData, "categoryIds"),
+    skinTypeIds: relations(formData, "skinTypeIds"),
   };
 }
 
@@ -105,6 +110,9 @@ export async function createProduct(
         slug: await uniqueSlug("product", parsed.data.title),
         sku: await nextSku(),
         sortIndex: (last?.sortIndex ?? -1) + 1,
+        categories: {
+          create: parsed.categoryIds.map((categoryId) => ({ categoryId })),
+        },
         skinTypes: {
           create: parsed.skinTypeIds.map((skinTypeId) => ({ skinTypeId })),
         },
@@ -145,14 +153,19 @@ export async function updateProduct(
   try {
     // The slug is not in `data`: it is fixed at creation so renaming a product
     // never breaks its storefront link or the slugs saved in shoppers' carts.
-    // Skin types are replaced wholesale — simpler and cheaper than diffing a
-    // handful of rows, and it keeps the join table honest.
+    // Categories and skin types are replaced wholesale — simpler and cheaper
+    // than diffing a handful of rows, and it keeps the join tables honest.
     // A product created before SKUs were issued picks one up on its next save;
     // one that already has a code keeps it, because paperwork quotes it.
     const data = existing.sku ? parsed.data : { ...parsed.data, sku: await nextSku() };
 
     await prisma.$transaction([
       prisma.product.update({ where: { id }, data }),
+      prisma.productCategory.deleteMany({ where: { productId: id } }),
+      prisma.productCategory.createMany({
+        data: parsed.categoryIds.map((categoryId) => ({ productId: id, categoryId })),
+        skipDuplicates: true,
+      }),
       prisma.productSkinType.deleteMany({ where: { productId: id } }),
       prisma.productSkinType.createMany({
         data: parsed.skinTypeIds.map((skinTypeId) => ({ productId: id, skinTypeId })),
@@ -215,7 +228,10 @@ export async function duplicateProduct(id: string): Promise<void> {
 
   const source = await prisma.product.findUniqueOrThrow({
     where: { id },
-    include: { skinTypes: { select: { skinTypeId: true } } },
+    include: {
+      categories: { select: { categoryId: true } },
+      skinTypes: { select: { skinTypeId: true } },
+    },
   });
 
   // Duplicate is only offered on live rows; restore the original first.
@@ -233,6 +249,7 @@ export async function duplicateProduct(id: string): Promise<void> {
     slug: _slug,
     createdAt: _createdAt,
     updatedAt: _updatedAt,
+    categories,
     skinTypes,
     ...fields
   } = source;
@@ -244,6 +261,7 @@ export async function duplicateProduct(id: string): Promise<void> {
       slug: await uniqueSlug("product", title),
       archivedAt: null,
       sortIndex: (last?.sortIndex ?? -1) + 1,
+      categories: { create: categories.map((c) => ({ categoryId: c.categoryId })) },
       skinTypes: { create: skinTypes.map((s) => ({ skinTypeId: s.skinTypeId })) },
     },
     select: { id: true },

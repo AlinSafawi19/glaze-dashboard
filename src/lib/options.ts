@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { BY_NAME } from "@/lib/resources";
 
 /**
  * Option lists that come out of the database, for every searchable select in
@@ -57,7 +58,12 @@ export async function loadOptions(source: OptionSource, query: string): Promise<
       // `@/lib/taxonomy-delegate` exists.
       const args = {
         where: { archivedAt: null, ...(contains ? { title: contains } : {}) },
-        orderBy: [{ sortIndex: "asc" as const }, { title: "asc" as const }],
+        // Brands are an A–Z index on the storefront, so they are offered in
+        // that order here too; the rest keep the order they were added in.
+        orderBy:
+          source === "brand"
+            ? BY_NAME
+            : [{ sortIndex: "asc" as const }, { title: "asc" as const }],
         select: { id: true, title: true },
         take: LIMIT,
       };

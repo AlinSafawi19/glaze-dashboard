@@ -77,10 +77,7 @@ export const RESOURCES: Record<ResourceKey, ResourceConfig> = {
         placeholder: "Clinique",
       },
     ],
-    columns: [
-      { name: "title", label: "Title" },
-      { name: "slug", label: "Slug" },
-    ],
+    columns: [{ name: "title", label: "Title" }],
   },
 
   categories: {
@@ -101,10 +98,7 @@ export const RESOURCES: Record<ResourceKey, ResourceConfig> = {
         placeholder: "Cleanser",
       },
     ],
-    columns: [
-      { name: "title", label: "Title" },
-      { name: "slug", label: "Slug" },
-    ],
+    columns: [{ name: "title", label: "Title" }],
   },
 
   collections: {
@@ -126,10 +120,7 @@ export const RESOURCES: Record<ResourceKey, ResourceConfig> = {
         placeholder: "SkinCare",
       },
     ],
-    columns: [
-      { name: "title", label: "Title" },
-      { name: "slug", label: "Slug" },
-    ],
+    columns: [{ name: "title", label: "Title" }],
   },
 
   "skin-types": {
@@ -150,10 +141,7 @@ export const RESOURCES: Record<ResourceKey, ResourceConfig> = {
         placeholder: "Sensitive",
       },
     ],
-    columns: [
-      { name: "title", label: "Title" },
-      { name: "slug", label: "Slug" },
-    ],
+    columns: [{ name: "title", label: "Title" }],
   },
 
   ticker: {
@@ -204,13 +192,27 @@ export const RESOURCES: Record<ResourceKey, ResourceConfig> = {
     ],
     columns: [
       { name: "title", label: "Title" },
-      { name: "slug", label: "Slug" },
       { name: "content", label: "Content", type: "html" },
     ],
   },
 };
 
 export const RESOURCE_LIST = Object.values(RESOURCES);
+
+/**
+ * List ordering.
+ *
+ * Most lists read in the order rows were added, which is what `sortIndex`
+ * records. Brands are the exception: the storefront presents them as an A–Z
+ * index, so they sort by name and a newly added one lands in its right place
+ * the moment it is saved rather than at the bottom.
+ */
+export const BY_ADDED = [{ sortIndex: "asc" as const }, { createdAt: "asc" as const }];
+export const BY_NAME = [{ title: "asc" as const }];
+
+export function orderFor(model: ModelKey) {
+  return model === "brand" ? BY_NAME : BY_ADDED;
+}
 
 /** `"L'Oreal Paris"` → `"l-oreal-paris"`. Matches the slugs already in use. */
 export function slugify(value: string): string {

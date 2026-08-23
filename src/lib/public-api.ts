@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { bestSellerIds } from "@/lib/best-sellers";
 import { prisma } from "@/lib/prisma";
+import { BY_ADDED, BY_NAME } from "@/lib/resources";
 
 /**
  * Wire format for /api/v1.
@@ -69,7 +70,7 @@ export const COLLECTIONS: Record<string, CollectionSpec> = {
       { name: "Discount", type: "number" },
       { name: "Collections", type: "relation", multiple: false, relation: "collections" },
       { name: "Sales type", type: "enum", options: [...SALES_TYPES], multiple: false },
-      { name: "Category", type: "relation", multiple: false, relation: "categories" },
+      { name: "Category", type: "relation", multiple: true, relation: "categories" },
       { name: "Brand", type: "relation", multiple: false, relation: "brands" },
       { name: "Skin Type", type: "relation", multiple: true, relation: "skin-types" },
       { name: "SKU", type: "number" },
@@ -207,7 +208,9 @@ const productSelect = {
   createdAt: true,
   updatedAt: true,
   brand: { select: { id: true, slug: true, title: true } },
-  category: { select: { id: true, slug: true, title: true } },
+  categories: {
+    select: { category: { select: { id: true, slug: true, title: true } } },
+  },
   collection: { select: { id: true, slug: true, title: true } },
   skinTypes: {
     select: { skinType: { select: { id: true, slug: true, title: true } } },
@@ -217,6 +220,7 @@ const productSelect = {
 type ProductRow = Prisma.ProductGetPayload<{ select: typeof productSelect }>;
 
 function serializeProduct(p: ProductRow, isBestSeller: boolean): Wire {
+  const categories = p.categories.map((link) => ref(link.category)!);
   const skinTypes = p.skinTypes.map((link) => ref(link.skinType)!);
 
   return compact({
@@ -233,7 +237,9 @@ function serializeProduct(p: ProductRow, isBestSeller: boolean): Wire {
     Discount: String(p.discount),
     "Sales type": salesTypeFor(p, isBestSeller),
     Collections: ref(p.collection),
-    Category: ref(p.category),
+    // A list now, like "Skin Type" — the key stays singular because that is
+    // what the storefront reads, and it accepts either shape.
+    Category: categories.length > 0 ? categories : undefined,
     Brand: ref(p.brand),
     "Skin Type": skinTypes.length > 0 ? skinTypes : undefined,
     SKU: p.sku,
@@ -262,7 +268,7 @@ export async function readCollection(
 ): Promise<PagedResult | null> {
   const skip = (page - 1) * limit;
   const live = { archivedAt: null };
-  const order = [{ sortIndex: "asc" as const }, { createdAt: "asc" as const }];
+  const order = BY_ADDED;
 
   switch (slug) {
     case "products": {
@@ -285,7 +291,9 @@ export async function readCollection(
         prisma.brand.count({ where: live }),
         prisma.brand.findMany({
           where: live,
-          orderBy: order,
+          // The storefront renders brands as an A–Z index, so they are sorted
+          // by name here rather than by when the shop added them.
+          orderBy: BY_NAME,
           skip,
           take: limit,
           select: {

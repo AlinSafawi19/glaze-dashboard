@@ -54,7 +54,7 @@ export default async function ProductsPage({
   const where = {
     ...(showArchived ? {} : { archivedAt: null }),
     ...(params.brand ? { brandId: params.brand } : {}),
-    ...(params.category ? { categoryId: params.category } : {}),
+    ...(params.category ? { categories: { some: { categoryId: params.category } } } : {}),
     ...(params.collection ? { collectionId: params.collection } : {}),
     ...(params.skinType
       ? { skinTypes: { some: { skinTypeId: params.skinType } } }
@@ -78,7 +78,10 @@ export default async function ProductsPage({
       take: window.take,
       include: {
         brand: { select: { title: true } },
-        category: { select: { title: true } },
+        categories: {
+          select: { category: { select: { id: true, title: true } } },
+          orderBy: { category: { sortIndex: "asc" } },
+        },
         collection: { select: { title: true } },
         skinTypes: {
           select: { skinType: { select: { id: true, title: true } } },
@@ -216,7 +219,12 @@ export default async function ProductsPage({
             const sold = unitsSold.get(product.id) ?? 0;
             const facets: Array<[string, string]> = [
               ["Brand", product.brand?.title ?? "—"],
-              ["Category", product.category?.title ?? "—"],
+              [
+                "Categories",
+                product.categories.length === 0
+                  ? "—"
+                  : product.categories.map((link) => link.category.title).join(", "),
+              ],
               ["Collection", product.collection?.title ?? "—"],
               [
                 "Skin types",

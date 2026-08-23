@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { normaliseHeader, toCsv, type Row } from "@/lib/csv";
+import { BY_ADDED, BY_NAME } from "@/lib/resources";
 import { skuIssuer } from "@/lib/sku";
 import { uniqueSlug } from "@/lib/slug";
 import { taxonomyDelegate } from "@/lib/taxonomy-delegate";
@@ -40,17 +41,30 @@ export interface TransferSpec {
   notes: string[];
 }
 
-/** Columns the dashboard fills in itself, so a spreadsheet cannot set them. */
+/**
+ * Columns the dashboard fills in itself, so a spreadsheet cannot set them.
+ *
+ * The slug is no longer written into an export either — it is derived from the
+ * title and never edited, so a column of it was one more thing to scroll past.
+ * It stays named here so a hand-made file that still carries one has it
+ * ignored rather than obeyed.
+ */
 const DASHBOARD_OWNED = ["Slug", "Cover img 1", "Img 2", "Img 3", "Img 4", "SKU"];
 
 const forImport = (headers: string[]): string[] =>
   headers.filter((header) => !DASHBOARD_OWNED.includes(header));
 
-const TAXONOMY_HEADERS = ["Slug", "Title"];
+const TAXONOMY_HEADERS = ["Title"];
 
-/** A product's own fields; its skin types follow in numbered columns. */
+/**
+ * A product's own fields.
+ *
+ * Categories and skin types are one column each, holding as many values as the
+ * product wears, separated by commas — see `MULTI_SEPARATOR`. They used to be a
+ * numbered column per slot, which made the sheet wider every time a product
+ * picked up another one.
+ */
 const PRODUCT_COLUMNS = [
-  "Slug",
   "Title",
   "Cover img 1",
   "Img 2",
@@ -65,27 +79,15 @@ const PRODUCT_COLUMNS = [
   "New in",
   "Limited",
   "Brand",
-  "Category",
+  "Categories",
   "Collection",
+  "Skin Types",
 ];
 
-/**
- * A product wears several skin types but an Excel dropdown holds one value, so
- * they get a numbered column each. Three is what the template offers; an export
- * widens to fit the product wearing the most, and the importer reads whatever
- * numbered columns a file actually has.
- */
-const SKIN_TYPE_COLUMNS = 3;
+const PRODUCT_HEADERS = PRODUCT_COLUMNS;
 
-const skinTypeHeaders = (count: number): string[] =>
-  Array.from({ length: count }, (_, index) => `Skin Type ${index + 1}`);
-
-const productHeaders = (skinTypeCount: number): string[] => [
-  ...PRODUCT_COLUMNS,
-  ...skinTypeHeaders(skinTypeCount),
-];
-
-const PRODUCT_HEADERS = productHeaders(SKIN_TYPE_COLUMNS);
+/** What separates the values inside a Categories or Skin Types cell. */
+const MULTI_SEPARATOR = ", ";
 
 const TAXONOMY_NOTES = [
   "Title is the only column.",
@@ -141,14 +143,14 @@ export const TRANSFERS: Record<TransferKey, TransferSpec> = {
       "New in": "no",
       Limited: "yes",
       Brand: "Clinique",
-      Category: "Cleanser",
+      Categories: "Cleanser, Toner",
       Collection: "Offers",
-      "Skin Type 1": "Dry",
-      "Skin Type 2": "Sensitive",
+      "Skin Types": "Dry, Sensitive",
     },
     notes: [
       "Title is the only required column.",
-      "Brand, Category, Collection and the Skin Type columns are dropdowns in the Excel file — pick from what the shop already has. An unknown name is reported, never created.",
+      "Brand, Categories, Collection and Skin Types are dropdowns in the Excel file — pick from what the shop already has. An unknown name is reported, never created.",
+      "Categories and Skin Types take more than one: pick one from the dropdown, then type the rest after it separated by commas — “Cleanser, Toner”. Excel only offers one value at a time, so that column accepts typing as well as picking.",
       "New in and Limited accept yes/no, true/false or 1/0.",
       "The slug and the SKU are issued automatically — there is nothing to fill in.",
       "Images are uploaded on the product's own page; an import never touches them.",
@@ -159,29 +161,23 @@ export const TRANSFERS: Record<TransferKey, TransferSpec> = {
 
 // ── export ───────────────────────────────────────────────────────────────────
 
-const ORDER = [{ sortIndex: "asc" as const }, { createdAt: "asc" as const }];
+const ORDER = BY_ADDED;
 
-/** The product sheet: its rows and the header row wide enough to hold them. */
+/** The product sheet: its rows and the header row they fill. */
 async function productSheet(): Promise<{ headers: string[]; rows: Row[] }> {
   const products = await prisma.product.findMany({
     where: { archivedAt: null },
     orderBy: ORDER,
     include: {
       brand: { select: { title: true } },
-      category: { select: { title: true } },
+      categories: { select: { category: { select: { title: true } } } },
       collection: { select: { title: true } },
       skinTypes: { select: { skinType: { select: { title: true } } } },
     },
   });
 
-  const widest = Math.max(
-    SKIN_TYPE_COLUMNS,
-    ...products.map((product) => product.skinTypes.length)
-  );
-
   const rows = products.map((product) => {
     const row: Row = {
-      Slug: product.slug,
       Title: product.title,
       "Cover img 1": product.coverImage ?? "",
       "Img 2": product.image2 ?? "",
@@ -196,44 +192,54 @@ async function productSheet(): Promise<{ headers: string[]; rows: Row[] }> {
       "New in": product.isNewIn ? "yes" : "no",
       Limited: product.isLimited ? "yes" : "no",
       Brand: product.brand?.title ?? "",
-      Category: product.category?.title ?? "",
+      Categories: product.categories
+        .map((link) => link.category.title)
+        .join(MULTI_SEPARATOR),
       Collection: product.collection?.title ?? "",
+      "Skin Types": product.skinTypes
+        .map((link) => link.skinType.title)
+        .join(MULTI_SEPARATOR),
     };
-
-    product.skinTypes.forEach((link, index) => {
-      row[`Skin Type ${index + 1}`] = link.skinType.title;
-    });
 
     return row;
   });
 
-  return { headers: productHeaders(widest), rows };
+  return { headers: PRODUCT_HEADERS, rows };
 }
 
 /**
  * The dropdown lists, straight from the live tables. A blank list simply means
  * no validation on that column — an empty range is not a legal one in Excel.
  */
-async function productDropdowns(headers: string[]): Promise<XlsxDropdown[]> {
+async function productDropdowns(): Promise<XlsxDropdown[]> {
   const live = { archivedAt: null };
   const select = { title: true };
   const titles = (rows: Array<{ title: string }>) => rows.map((row) => row.title);
 
   const [brands, categories, collections, skinTypes] = await Promise.all([
-    prisma.brand.findMany({ where: live, orderBy: ORDER, select }),
+    prisma.brand.findMany({ where: live, orderBy: BY_NAME, select }),
     prisma.category.findMany({ where: live, orderBy: ORDER, select }),
     prisma.collection.findMany({ where: live, orderBy: ORDER, select }),
     prisma.skinType.findMany({ where: live, orderBy: ORDER, select }),
   ]);
 
+  // `multi` marks the two columns that hold a comma-separated list: their
+  // dropdown suggests rather than enforces, so a second value can be typed in
+  // after the first is picked. See `XlsxDropdown`.
   return [
     { label: "Brands", headers: ["Brand"], values: titles(brands) },
-    { label: "Categories", headers: ["Category"], values: titles(categories) },
+    {
+      label: "Categories",
+      headers: ["Categories"],
+      values: titles(categories),
+      multi: true,
+    },
     { label: "Collections", headers: ["Collection"], values: titles(collections) },
     {
       label: "Skin types",
-      headers: headers.filter((header) => header.startsWith("Skin Type")),
+      headers: ["Skin Types"],
       values: titles(skinTypes),
+      multi: true,
     },
   ];
 }
@@ -249,7 +255,7 @@ export async function exportProductsXlsx(): Promise<Uint8Array> {
     sheetName: "Products",
     headers,
     rows,
-    dropdowns: await productDropdowns(headers),
+    dropdowns: await productDropdowns(),
   });
 }
 
@@ -260,7 +266,7 @@ export async function sampleProductsXlsx(): Promise<Uint8Array> {
     sheetName: "Products",
     headers,
     rows: [TRANSFERS.products.sample],
-    dropdowns: await productDropdowns(headers),
+    dropdowns: await productDropdowns(),
   });
 }
 
@@ -270,17 +276,17 @@ export async function exportRows(key: TransferKey): Promise<Row[]> {
 
   if (key === "products") return (await productSheet()).rows;
 
-  const select = { slug: true, title: true };
+  const select = { title: true };
   const rows =
     key === "brands"
-      ? await prisma.brand.findMany({ where: live, orderBy: order, select })
+      ? await prisma.brand.findMany({ where: live, orderBy: BY_NAME, select })
       : key === "categories"
         ? await prisma.category.findMany({ where: live, orderBy: order, select })
         : key === "collections"
           ? await prisma.collection.findMany({ where: live, orderBy: order, select })
           : await prisma.skinType.findMany({ where: live, orderBy: order, select });
 
-  return rows.map((row) => ({ Slug: row.slug, Title: row.title }));
+  return rows.map((row) => ({ Title: row.title }));
 }
 
 export async function exportCsv(key: TransferKey): Promise<string> {
@@ -316,22 +322,41 @@ function boolean(value: string): boolean {
   return ["yes", "true", "1", "y"].includes(value.trim().toLowerCase());
 }
 
-/** Far more numbered columns than any catalogue needs, so the scan always ends. */
-const MAX_SKIN_TYPE_COLUMNS = 20;
+/** Far more numbered columns than any catalogue ever had, so the scan always ends. */
+const MAX_NUMBERED_COLUMNS = 20;
 
 /**
- * Skin types come in as numbered dropdown columns. A file written before they
- * were split apart holds them in one semicolon-separated cell instead, so both
- * are read and an older spreadsheet still imports.
+ * Splits a multi-value cell. Commas are what the sheet writes; semicolons are
+ * read too, because an older export used them.
+ */
+function names(value: string): string[] {
+  return value
+    .split(/[,;]/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Categories arrive in one comma-separated cell. "Category" is read as well —
+ * that was the column's name while a product could only have one, and a file
+ * saved back then still imports.
+ */
+function categoryNames(row: Row): string[] {
+  return [...names(cell(row, "Categories")), ...names(cell(row, "Category"))];
+}
+
+/**
+ * The same for skin types, which additionally spent a while as a numbered
+ * column per slot. All three shapes are read.
  */
 function skinTypeNames(row: Row): string[] {
-  const names = cell(row, "Skin Types").split(";");
+  const found = names(cell(row, "Skin Types"));
 
-  for (let column = 1; column <= MAX_SKIN_TYPE_COLUMNS; column += 1) {
-    names.push(cell(row, `Skin Type ${column}`));
+  for (let column = 1; column <= MAX_NUMBERED_COLUMNS; column += 1) {
+    found.push(...names(cell(row, `Skin Type ${column}`)));
   }
 
-  return names.map((name) => name.trim()).filter(Boolean);
+  return found;
 }
 
 /** Lets a spreadsheet name a relation by either its display name or its slug. */
@@ -487,13 +512,21 @@ async function importProducts(
       continue;
     }
 
-    const skinTypeIds = [
+    /** Resolves a list column, dropping the names the shop does not stock. */
+    const resolveAll = (
+      wanted: string[],
+      lookup: Map<string, string>,
+      label: string
+    ): string[] => [
       ...new Set(
-        skinTypeNames(row)
-          .map((name) => resolve(skinTypeIndex, name, "skin type", index))
+        wanted
+          .map((name) => resolve(lookup, name, label, index))
           .filter((id): id is string => Boolean(id))
       ),
     ];
+
+    const categoryIds = resolveAll(categoryNames(row), categoryIndex, "category");
+    const skinTypeIds = resolveAll(skinTypeNames(row), skinTypeIndex, "skin type");
 
     // No image fields: they are uploaded in the dashboard, and leaving them out
     // of the update keeps pictures a spreadsheet has no way to carry.
@@ -507,7 +540,6 @@ async function importProducts(
       isNewIn: boolean(cell(row, "New in")),
       isLimited: boolean(cell(row, "Limited")),
       brandId: resolve(brandIndex, cell(row, "Brand"), "brand", index),
-      categoryId: resolve(categoryIndex, cell(row, "Category"), "category", index),
       collectionId: resolve(collectionIndex, cell(row, "Collection"), "collection", index),
     };
 
@@ -518,12 +550,19 @@ async function importProducts(
       });
 
       if (existing) {
+        // Both lists are replaced wholesale rather than diffed: the row in the
+        // file is the whole truth about what that product is filed under.
         await prisma.$transaction([
           prisma.product.update({
             where: { id: existing.id },
             // A product from before SKUs were issued picks one up here; one that
             // already has a code keeps it, because paperwork quotes it.
             data: existing.sku ? data : { ...data, sku: issueSku() },
+          }),
+          prisma.productCategory.deleteMany({ where: { productId: existing.id } }),
+          prisma.productCategory.createMany({
+            data: categoryIds.map((categoryId) => ({ productId: existing.id, categoryId })),
+            skipDuplicates: true,
           }),
           prisma.productSkinType.deleteMany({ where: { productId: existing.id } }),
           prisma.productSkinType.createMany({
@@ -543,6 +582,7 @@ async function importProducts(
             slug: await uniqueSlug("product", title),
             sku: issueSku(),
             sortIndex: (last?.sortIndex ?? -1) + 1,
+            categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
             skinTypes: { create: skinTypeIds.map((skinTypeId) => ({ skinTypeId })) },
           },
         });

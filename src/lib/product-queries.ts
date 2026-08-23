@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import { BY_NAME } from "@/lib/resources";
 import type { Option, ProductValues } from "@/components/product-form";
 
 /** Everything the product form needs to render its selects and checkboxes. */
@@ -16,7 +17,9 @@ export async function loadProductOptions(): Promise<{
   const orderBy = [{ sortIndex: "asc" as const }, { title: "asc" as const }];
 
   const [brands, categories, collections, skinTypes, sizes] = await Promise.all([
-    prisma.brand.findMany({ where: live, orderBy, select }),
+    // Brands read A–Z, so a newly added one is in place immediately rather than
+    // at the bottom of the list.
+    prisma.brand.findMany({ where: live, orderBy: BY_NAME, select }),
     prisma.category.findMany({ where: live, orderBy, select }),
     prisma.collection.findMany({ where: live, orderBy, select }),
     prisma.skinType.findMany({ where: live, orderBy, select }),
@@ -49,7 +52,10 @@ export async function loadProduct(
 ): Promise<(ProductValues & { id: string; slug: string; sku: string }) | null> {
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { skinTypes: { select: { skinTypeId: true } } },
+    include: {
+      categories: { select: { categoryId: true } },
+      skinTypes: { select: { skinTypeId: true } },
+    },
   });
   if (!product || product.archivedAt) return null;
 
@@ -70,7 +76,7 @@ export async function loadProduct(
     isNewIn: product.isNewIn,
     isLimited: product.isLimited,
     brandId: product.brandId ?? "",
-    categoryId: product.categoryId ?? "",
+    categoryIds: product.categories.map((c) => c.categoryId),
     collectionId: product.collectionId ?? "",
     skinTypeIds: product.skinTypes.map((s) => s.skinTypeId),
   };

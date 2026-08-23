@@ -50,7 +50,7 @@ model Category {
   updatedAt  DateTime  @updatedAt
   archivedAt DateTime?
 
-  products Product[]
+  products ProductCategory[]
 
   @@index([archivedAt])
   @@index([sortIndex])
@@ -129,10 +129,13 @@ model Product {
 
   brandId      String?
   brand        Brand?      @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  categoryId   String?
-  category     Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   collectionId String?
   collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  /// Canopy "Category" was one relation, but a cleanser can just as well be a
+  /// toner — the shop files several products under more than one heading, and
+  /// the storefront filter matches on any of them.
+  categories ProductCategory[]
 
   /// Canopy "Skin Type" — the storefront filter already reads this as a list,
   /// so it is many-to-many rather than a single relation.
@@ -150,8 +153,17 @@ model Product {
   @@index([archivedAt])
   @@index([sortIndex])
   @@index([brandId])
-  @@index([categoryId])
   @@index([collectionId])
+}
+
+model ProductCategory {
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
 }
 
 model ProductSkinType {

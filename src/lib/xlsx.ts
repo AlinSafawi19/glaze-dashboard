@@ -265,6 +265,16 @@ export interface XlsxDropdown {
   values: string[];
   /** What the list is called on the hidden sheet. */
   label: string;
+  /**
+   * Set when one cell in that column holds several of these values.
+   *
+   * Excel has no multi-select dropdown — a list validation accepts exactly one
+   * of its values per cell — so for those columns the list is offered rather
+   * than enforced: the arrow still drops down and fills the cell with a pick,
+   * and typing a comma-separated run of them is accepted instead of rejected.
+   * A tooltip on the cell says so, because the arrow alone does not.
+   */
+  multi?: boolean;
 }
 
 export interface XlsxOptions {
@@ -311,9 +321,21 @@ export function toXlsx(options: XlsxOptions): Uint8Array {
         .filter((index) => index >= 0)
         .map((index) => {
           const letter = columnName(index);
+          const named = escapeXml(dropdown.label.toLowerCase());
+          const example = escapeXml(dropdown.values.slice(0, 2).join(", "));
+          const guidance = dropdown.multi
+            ? [
+                ` showErrorMessage="0"`,
+                ` promptTitle="One or more" prompt="Pick from the list, or type several separated by commas — ${example}"`,
+              ]
+            : [
+                ` showErrorMessage="1"`,
+                ` errorTitle="Not on the list" error="Pick one of the ${named} we already have, or add it in the dashboard first."`,
+              ];
+
           return [
-            `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1"`,
-            ` errorTitle="Not on the list" error="Pick one of the ${escapeXml(dropdown.label.toLowerCase())} we already have, or add it in the dashboard first."`,
+            `<dataValidation type="list" allowBlank="1" showInputMessage="1"`,
+            ...guidance,
             ` sqref="${letter}2:${letter}${lastRow}">`,
             `<formula1>${range}</formula1>`,
             `</dataValidation>`,
@@ -366,7 +388,7 @@ export function toXlsx(options: XlsxOptions): Uint8Array {
       data: utf8(
         sheetXml(headers, body, {
           // The count attribute has to match the elements, not the list count:
-          // three Skin Type columns share one list but are three validations.
+          // one list can validate several columns, one element each.
           validations: validations.length
             ? `<dataValidations count="${validations.length}">${validations.join("")}</dataValidations>`
             : "",

@@ -28,7 +28,7 @@ export interface ProductValues {
   isNewIn: boolean;
   isLimited: boolean;
   brandId: string;
-  categoryId: string;
+  categoryIds: string[];
   collectionId: string;
   skinTypeIds: string[];
 }
@@ -47,7 +47,7 @@ export const EMPTY_PRODUCT: ProductValues = {
   isNewIn: false,
   isLimited: false,
   brandId: "",
-  categoryId: "",
+  categoryIds: [],
   collectionId: "",
   skinTypeIds: [],
 };
@@ -279,13 +279,16 @@ export function ProductForm({
               />
             </Field>
 
-            <Field label="Category">
+            {/* A product can be filed under several headings at once — a
+                cleanser that is also a toner shows up under both filters. */}
+            <Field label="Categories" hint="Pick as many as apply.">
               <BrandAsyncSelect
-                name="categoryId"
+                name="categoryIds"
                 source="category"
                 options={toOptions(categories)}
-                defaultValue={values.categoryId}
+                defaultValue={values.categoryIds}
                 placeholder="Search categories…"
+                isMulti
               />
             </Field>
 

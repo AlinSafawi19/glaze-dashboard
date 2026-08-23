@@ -19,7 +19,7 @@ import { archiveResource, deleteResource, restoreResource } from "@/lib/actions/
 import { getCurrentUser } from "@/lib/dal";
 import { readWindow, type ListWindow } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
-import type { ResourceConfig, ResourceKey } from "@/lib/resources";
+import { orderFor, type ResourceConfig, type ResourceKey } from "@/lib/resources";
 import { TRANSFERS, type TransferKey } from "@/lib/transfer";
 
 interface Row {
@@ -55,7 +55,7 @@ async function loadRows(
 ): Promise<Row[]> {
   const args = {
     where,
-    orderBy: [{ sortIndex: "asc" as const }, { createdAt: "asc" as const }],
+    orderBy: orderFor(config.model),
     skip: window.skip,
     take: window.take,
     ...(config.productCount
