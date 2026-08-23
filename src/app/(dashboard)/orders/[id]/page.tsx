@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ActionButton } from "@/components/confirm-button";
-import { StatusSelect } from "@/components/status-select";
+import { StatusControl } from "@/components/status-control";
 import { Badge, Card, PageHeader, Table, Td, Th } from "@/components/ui";
 import { archiveOrder, deleteOrder, restoreOrder } from "@/lib/actions/orders";
 import { getCurrentUser } from "@/lib/dal";
@@ -50,7 +50,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <PageHeader
-        title={`Order #${order.number}`}
+        title={`Order ${order.reference}`}
         subtitle={DATE.format(order.createdAt)}
         action={
           <div className="flex items-center gap-2">
@@ -77,7 +77,6 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </>
             ) : (
               <>
-                <StatusSelect id={order.id} status={order.status} />
                 <ActionButton
                   action={archiveOrder.bind(null, order.id)}
                   label="Archive"
@@ -92,10 +91,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         }
       />
 
-      <div className="mb-6 flex items-center gap-3">
-        <Badge tone={STATUS_TONE[order.status]}>{STATUS_LABEL[order.status]}</Badge>
-        {order.archivedAt && <Badge tone="warn">Archived</Badge>}
-      </div>
+      {order.archivedAt ? (
+        <div className="mb-6 flex items-center gap-3">
+          <Badge tone={STATUS_TONE[order.status]}>{STATUS_LABEL[order.status]}</Badge>
+          <Badge tone="warn">Archived</Badge>
+        </div>
+      ) : (
+        <Card className="mb-6 p-5">
+          <StatusControl id={order.id} status={order.status} variant="full" />
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="flex flex-col gap-6">

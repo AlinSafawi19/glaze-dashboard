@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { REFERENCE_ATTEMPTS, newOrderReference } from "@/lib/order-reference";
 
 /**
  * Checkout payload. The storefront posts structured `Items`; the older
@@ -107,8 +108,43 @@ export async function placeOrder(
     );
   }
 
+  // References are random, so two orders placed in the same instant can collide.
+  // The unique index is the authority; this just tries again when it fires.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await createOrder(input, customerId, accountEmail, lines, total);
+    } catch (error) {
+      if (attempt >= REFERENCE_ATTEMPTS || !isDuplicateReference(error)) throw error;
+    }
+  }
+}
+
+/** A unique-constraint failure on `reference`, and nothing else. */
+function isDuplicateReference(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: string }).code === "P2002" &&
+    String((error as { meta?: { target?: unknown } }).meta?.target ?? "").includes("reference")
+  );
+}
+
+function createOrder(
+  input: CheckoutInput,
+  customerId: string | null,
+  accountEmail: string | null,
+  lines: Array<{
+    productId: string;
+    slug: string;
+    title: string;
+    unitPrice: string;
+    quantity: number;
+  }>,
+  total: number
+) {
   return prisma.order.create({
     data: {
+      reference: newOrderReference(),
       name: input.Name,
       phone: input.Phone,
       address: input.Address,
@@ -123,6 +159,7 @@ export async function placeOrder(
     select: {
       id: true,
       number: true,
+      reference: true,
       total: true,
       createdAt: true,
       name: true,

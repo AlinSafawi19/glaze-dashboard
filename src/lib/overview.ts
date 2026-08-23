@@ -246,7 +246,7 @@ const OPEN_STATUSES: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED"];
 
 export interface OpenOrder {
   id: string;
-  number: number;
+  reference: string;
   name: string;
   city: string;
   phone: string;
@@ -278,7 +278,7 @@ export async function pipeline(take = 12): Promise<Pipeline> {
       take,
       select: {
         id: true,
-        number: true,
+        reference: true,
         name: true,
         city: true,
         phone: true,
@@ -300,7 +300,7 @@ export async function pipeline(take = 12): Promise<Pipeline> {
     counts,
     orders: rows.map((row) => ({
       id: row.id,
-      number: row.number,
+      reference: row.reference,
       name: row.name,
       city: row.city,
       phone: row.phone,

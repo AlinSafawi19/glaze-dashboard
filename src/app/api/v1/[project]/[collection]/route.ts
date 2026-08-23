@@ -111,7 +111,7 @@ export async function POST(
     // shopper must never see an error because an email provider was down.
     await announceOrder({
       id: order.id,
-      number: order.number,
+      reference: order.reference,
       name: order.name,
       phone: order.phone,
       address: order.address,
@@ -131,7 +131,7 @@ export async function POST(
       {
         data: {
           id: order.id,
-          Number: order.number,
+          Reference: order.reference,
           Total: String(Number(order.total)),
           Created: order.createdAt.toISOString(),
         },

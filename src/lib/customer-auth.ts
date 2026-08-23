@@ -428,7 +428,7 @@ export async function customerOrders(customerId: string) {
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
-      number: true,
+      reference: true,
       status: true,
       total: true,
       createdAt: true,
@@ -453,7 +453,7 @@ export async function customerOrders(customerId: string) {
 
   return orders.map((order) => ({
     id: order.id,
-    Number: order.number,
+    Reference: order.reference,
     Status: STATUS_LABEL[order.status],
     Total: String(Number(order.total)),
     Placed: order.createdAt.toISOString(),

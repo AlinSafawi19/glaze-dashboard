@@ -6,7 +6,7 @@ import { ActionButton } from "@/components/confirm-button";
 import { Pagination } from "@/components/pagination";
 import { SearchInput } from "@/components/search-input";
 import { StatusFilter } from "@/components/status-filter";
-import { StatusSelect } from "@/components/status-select";
+import { StatusControl } from "@/components/status-control";
 import {
   Badge,
   EmptyState,
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui";
 import { archiveOrder, restoreOrder } from "@/lib/actions/orders";
 import { ORDER_STATUSES } from "@/lib/order-status";
+import { normaliseOrderReference } from "@/lib/order-reference";
 import { readWindow } from "@/lib/pagination";
 import { prisma } from "@/lib/prisma";
 import { ClickableCopyableText } from "@/components/text";
@@ -63,9 +64,9 @@ export default async function OrdersPage({
             { phone: { contains: search, mode: "insensitive" as const } },
             { email: { contains: search, mode: "insensitive" as const } },
             { city: { contains: search, mode: "insensitive" as const } },
-            ...(Number.isFinite(Number.parseInt(search, 10))
-              ? [{ number: Number.parseInt(search, 10) }]
-              : []),
+            // Typed however it was read off an email: lower case, spaces, the
+            // dashes or the prefix left out.
+            { reference: { contains: normaliseOrderReference(search) ?? search, mode: "insensitive" as const } },
           ],
         }
       : {}),
@@ -111,7 +112,7 @@ export default async function OrdersPage({
           list, and splitting them over two rows read as two unrelated tools. */}
       <div className="mb-4 flex flex-col gap-3 tablet:flex-row tablet:items-center">
         <div className="tablet:flex-1">
-          <SearchInput placeholder="Search name, phone, email, city or #number" />
+          <SearchInput placeholder="Search name, phone, email, city or reference" />
         </div>
         <StatusFilter value={filter} counts={statusCounts} />
       </div>
@@ -144,7 +145,7 @@ export default async function OrdersPage({
                       href={`/orders/${order.id}`}
                       className="font-medium hover:text-accent"
                     >
-                      #{order.number}
+                      {order.reference}
                     </Link>
                     <p className="text-xs text-muted">{DATE.format(order.createdAt)}</p>
                   </Td>
@@ -167,7 +168,7 @@ export default async function OrdersPage({
                     {order.archivedAt ? (
                       <Badge tone="warn">Archived</Badge>
                     ) : (
-                      <StatusSelect id={order.id} status={order.status} />
+                      <StatusControl id={order.id} status={order.status} />
                     )}
                   </Td>
                   <Td>

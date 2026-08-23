@@ -228,6 +228,11 @@ model Order {
   id     String @id @default(cuid())
   /// Short human-readable reference the client reads out on the phone.
   number Int    @unique @default(autoincrement())
+  /// What the shopper is told, and the only identifier that leaves the shop.
+  /// Random rather than sequential: `number` would tell anyone placing two
+  /// orders how many the shop took in between. Kept alongside it, because the
+  /// sequence is still the shop's own record of the order things happened in.
+  reference String @unique @db.VarChar(20)
 
   /// Canopy-shaped checkout payload fields.
   name    String  @db.VarChar(160)

@@ -35,7 +35,7 @@ async function recordNotification(order: PlacedOrder): Promise<void> {
     const row = await prisma.notification.create({
       data: {
         type: "order.placed",
-        title: `New order #${order.number}`,
+        title: `New order ${order.reference}`,
         body: `${order.name} · ${units} ${units === 1 ? "item" : "items"} · $${order.total} · ${order.city}`,
         resourceId: order.id,
         href: `/orders/${order.id}`,

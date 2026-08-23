@@ -14,6 +14,7 @@ import {
   type LineItem,
 } from "@/lib/email/layout";
 import { DASHBOARD_URL, STOREFRONT_URL, type OutgoingEmail } from "@/lib/email/send";
+import type { OrderStatus } from "@prisma/client";
 
 /**
  * Every message the shop sends, as one function each: subject line and body
@@ -22,7 +23,8 @@ import { DASHBOARD_URL, STOREFRONT_URL, type OutgoingEmail } from "@/lib/email/s
 
 export interface OrderEmailData {
   id: string;
-  number: number;
+  /** What the shopper is told. `number` is the shop's own sequence, and stays in. */
+  reference: string;
   name: string;
   phone: string;
   address: string;
@@ -39,11 +41,11 @@ export function orderPlacedOwner(order: OrderEmailData, to: string): OutgoingEma
 
   return {
     to,
-    subject: `New order #${order.number} — ${money(order.total)}`,
+    subject: `New order ${order.reference} — ${money(order.total)}`,
     html: shell({
       preheader: `${order.name} · ${units} ${units === 1 ? "item" : "items"} · ${order.city}`,
       eyebrow: "New order",
-      heading: `#${order.number} — ${order.name}`,
+      heading: `${order.reference} — ${order.name}`,
       body: [
         itemsTable(order.items, order.total),
         heading("Deliver to"),
@@ -68,11 +70,11 @@ export function orderPlacedCustomer(order: OrderEmailData, to: string): Outgoing
 
   return {
     to,
-    subject: `Your Glaze order #${order.number}`,
+    subject: `Your Glaze order ${order.reference}`,
     html: shell({
       hero: { src: HERO_IMAGE, alt: "" },
       preheader: `We have your order — ${money(order.total)}, paid ${order.payment.toLowerCase()}.`,
-      eyebrow: `Order #${order.number}`,
+      eyebrow: `Order ${order.reference}`,
       heading: `Thank you, ${firstName}`,
       body: [
         paragraph("Your order is in and we are getting it ready for delivery."),
@@ -90,6 +92,94 @@ export function orderPlacedCustomer(order: OrderEmailData, to: string): Outgoing
         : {}),
       footnote:
         "Something not right? Reply to this email and we will sort it out.",
+    }),
+  };
+}
+
+/**
+ * What the shopper is told at each step of an order's life.
+ *
+ * `PENDING` is deliberately absent. It is the state an order is created in, so
+ * the confirmation sent at checkout already covers it — and a shop correcting
+ * a mis-clicked status should not send "your order is pending" to someone who
+ * was told yesterday it had shipped.
+ */
+const STATUS_EMAIL: Partial<
+  Record<OrderStatus, { eyebrow: string; heading: string; body: string; footnote: string }>
+> = {
+  CONFIRMED: {
+    eyebrow: "Order confirmed",
+    heading: "Your order is confirmed",
+    body: "Everything you ordered is in stock and we are putting it together now. We will let you know the moment it goes out for delivery.",
+    footnote: "Questions about this order? Reply to this email.",
+  },
+  SHIPPED: {
+    eyebrow: "On its way",
+    heading: "Your order is on its way",
+    body: "Your order has left us and is with the courier. They will call the number on the order before they arrive, so keep it to hand.",
+    footnote: "Payment is cash on delivery — please have the amount below ready for the courier.",
+  },
+  DELIVERED: {
+    eyebrow: "Delivered",
+    heading: "Your order has arrived",
+    body: "Your order has been delivered. We hope you love it — and if anything is not right, tell us and we will put it straight.",
+    footnote: "Something not right? Reply to this email and we will sort it out.",
+  },
+  CANCELLED: {
+    eyebrow: "Cancelled",
+    heading: "Your order was cancelled",
+    body: "This order has been cancelled and there is nothing to pay. Nothing will arrive, and the courier will not call.",
+    footnote: "If you were not expecting this, reply to this email and we will look into it.",
+  },
+};
+
+/** Whether a move to this status is worth telling the shopper about. */
+export function statusEmailExists(status: OrderStatus): boolean {
+  return status in STATUS_EMAIL;
+}
+
+/**
+ * Sent to the shopper when the shop moves an order along. Returns null for a
+ * status with nothing worth saying, so the caller simply does not send.
+ */
+export function orderStatusChanged(
+  order: OrderEmailData,
+  status: OrderStatus,
+  to: string
+): OutgoingEmail | null {
+  const copy = STATUS_EMAIL[status];
+  if (!copy) return null;
+
+  const firstName = order.name.trim().split(/\s+/)[0] || "there";
+
+  return {
+    to,
+    subject: `${copy.heading} — order ${order.reference}`,
+    html: shell({
+      preheader: `Order ${order.reference} — ${copy.heading.toLowerCase()}.`,
+      eyebrow: copy.eyebrow,
+      heading: copy.heading,
+      body: [
+        paragraph(`${firstName}, ${copy.body.charAt(0).toLowerCase()}${copy.body.slice(1)}`),
+        heading("What you ordered"),
+        itemsTable(order.items, order.total),
+        // Where it is going matters while it is still coming; once it has
+        // arrived or been called off, repeating the address is just noise.
+        ...(status === "SHIPPED" || status === "CONFIRMED"
+          ? [
+              heading("Delivering to"),
+              definitionList([
+                ["Address", order.address],
+                ["City", order.city],
+                ["Payment", order.payment],
+              ]),
+            ]
+          : []),
+      ].join(""),
+      ...(STOREFRONT_URL && status === "DELIVERED"
+        ? { cta: { label: "Shop again", href: STOREFRONT_URL } }
+        : {}),
+      footnote: copy.footnote,
     }),
   };
 }

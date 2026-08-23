@@ -47,7 +47,7 @@ export default async function CustomerPage({
           orderBy: { createdAt: "desc" },
           select: {
             id: true,
-            number: true,
+            reference: true,
             status: true,
             total: true,
             city: true,
@@ -147,7 +147,7 @@ export default async function CustomerPage({
                           href={`/orders/${order.id}`}
                           className="transition-colors hover:text-plum"
                         >
-                          #{order.number}
+                          {order.reference}
                         </Link>
                         <p className="font-inter text-[12px] font-light text-brown">
                           {DATE.format(order.createdAt)}

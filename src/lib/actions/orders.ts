@@ -6,7 +6,9 @@ import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { pushOrderChanged } from "@/lib/realtime";
 import { requireOwner, requireUserForAction } from "@/lib/dal";
-import { ORDER_STATUSES, STATUS_LABEL } from "@/lib/order-status";
+import { ORDER_STATUSES, STATUS_LABEL, canMoveTo } from "@/lib/order-status";
+import { sendEmail } from "@/lib/email/send";
+import { orderStatusChanged } from "@/lib/email/templates";
 
 function refresh(id?: string) {
   revalidatePath("/orders");
@@ -22,12 +24,64 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
   // since hiding a control is not the same as preventing the action.
   const order = await prisma.order.findUnique({
     where: { id },
-    select: { archivedAt: true },
+    select: {
+      archivedAt: true,
+      status: true,
+      reference: true,
+      name: true,
+      phone: true,
+      address: true,
+      city: true,
+      notes: true,
+      payment: true,
+      email: true,
+      total: true,
+      items: { select: { title: true, quantity: true, unitPrice: true } },
+    },
   });
   if (!order) throw new Error("That order no longer exists.");
   if (order.archivedAt) throw new Error("Restore this order before changing its status.");
 
+  // Nothing to do, and nothing to email about — two people working the list at
+  // once will both click the same button sooner or later.
+  if (order.status === status) return;
+
+  // Orders move forward or they are cancelled. Enforced here rather than only
+  // in the buttons, because the action is reachable without them.
+  if (!canMoveTo(order.status, status)) {
+    throw new Error(
+      `An order that is ${STATUS_LABEL[order.status].toLowerCase()} cannot be moved to ${STATUS_LABEL[status].toLowerCase()}.`
+    );
+  }
+
   await prisma.order.update({ where: { id }, data: { status } });
+
+  // Best-effort, and after the commit: the status has already changed, and the
+  // shop must not see the update fail because an email provider had a bad
+  // minute. Guests who left no address simply get nothing.
+  if (order.email) {
+    const email = orderStatusChanged(
+      {
+        id,
+        reference: order.reference,
+        name: order.name,
+        phone: order.phone,
+        address: order.address,
+        city: order.city,
+        notes: order.notes,
+        payment: order.payment,
+        total: String(Number(order.total)),
+        items: order.items.map((item) => ({
+          title: item.title,
+          quantity: item.quantity,
+          unitPrice: String(Number(item.unitPrice)),
+        })),
+      },
+      status,
+      order.email
+    );
+    if (email) await sendEmail(email).catch(() => false);
+  }
 
   // Two people often work the order list at once; tell the other tabs so they
   // do not sit on a status that has already moved.

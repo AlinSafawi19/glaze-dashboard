@@ -158,7 +158,7 @@ export default async function OverviewPage({
                       href={`/orders/${order.id}`}
                       className="transition-colors hover:text-plum"
                     >
-                      #{order.number}
+                      {order.reference}
                     </Link>
                     <p className="font-inter text-[12px] font-light text-brown">
                       {DATE.format(order.createdAt)} · {waitingFor(order.createdAt)}
