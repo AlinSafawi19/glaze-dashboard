@@ -73,6 +73,7 @@ const PRODUCT_COLUMNS = [
   "Price",
   "Discount",
   "SKU",
+  "Stock",
   "Size",
   "Key Ingredients",
   "Description",
@@ -137,6 +138,7 @@ export const TRANSFERS: Record<TransferKey, TransferSpec> = {
       Title: "Marble Mortar",
       Price: "120",
       Discount: "10",
+      Stock: "12",
       Size: "125ml — 14.9% vol.",
       "Key Ingredients": "Mineral Clay, Shea Butter",
       Description: "Smooth, rich, essential.",
@@ -152,6 +154,7 @@ export const TRANSFERS: Record<TransferKey, TransferSpec> = {
       "Brand, Categories, Collection and Skin Types are dropdowns in the Excel file — pick from what the shop already has. An unknown name is reported, never created.",
       "Categories and Skin Types take more than one: pick one from the dropdown, then type the rest after it separated by commas — “Cleanser, Toner”. Excel only offers one value at a time, so that column accepts typing as well as picking.",
       "New in and Limited are yes/no dropdowns. A file written by hand may use true/false or 1/0 instead.",
+      "Stock is the number of units on hand. Leave the cell empty not to track that product — it never shows as sold out and never blocks a checkout.",
       "The slug and the SKU are issued automatically — there is nothing to fill in.",
       "Images are uploaded on the product's own page; an import never touches them.",
       "A row whose title already exists updates that product instead of adding a second.",
@@ -186,6 +189,8 @@ async function productSheet(): Promise<{ headers: string[]; rows: Row[] }> {
       Price: String(Number(product.price)),
       Discount: String(product.discount),
       SKU: product.sku ?? "",
+      // Blank means untracked, which is what an empty cell imports back as.
+      Stock: product.stock === null ? "" : String(product.stock),
       Size: product.size ?? "",
       "Key Ingredients": product.keyIngredients ?? "",
       Description: product.description ?? "",
@@ -520,6 +525,16 @@ async function importProducts(
       continue;
     }
 
+    // An empty cell means "do not track this one", not "zero" — the difference
+    // between a product that is always available and one that is sold out.
+    const stockRaw = cell(row, "Stock");
+    const stock = stockRaw === "" ? null : Number.parseInt(stockRaw, 10);
+    if (stock !== null && (!Number.isFinite(stock) || stock < 0)) {
+      result.skipped += 1;
+      note(`${at(index)}: stock “${stockRaw}” must be a whole number of 0 or more, or left empty.`);
+      continue;
+    }
+
     /** Resolves a list column, dropping the names the shop does not stock. */
     const resolveAll = (
       wanted: string[],
@@ -542,6 +557,7 @@ async function importProducts(
       title,
       price: price.toFixed(2),
       discount,
+      stock,
       size: cell(row, "Size") || null,
       keyIngredients: cell(row, "Key Ingredients") || null,
       description: cell(row, "Description") || null,

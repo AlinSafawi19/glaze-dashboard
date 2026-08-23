@@ -69,6 +69,7 @@ export async function loadProduct(
     image4: product.image4 ?? "",
     price: String(Number(product.price)),
     discount: String(product.discount),
+    stock: product.stock === null ? "" : String(product.stock),
     sku: product.sku ?? "",
     size: product.size ?? "",
     keyIngredients: product.keyIngredients ?? "",

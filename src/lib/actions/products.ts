@@ -54,6 +54,17 @@ function parse(formData: FormData): Parsed {
     return { ok: false, error: "Discount is a percentage between 0 and 100." };
   }
 
+  // Empty is a choice, not a blank left unfilled: it means this product is not
+  // counted. Only a value that is actually there has to be whole units.
+  const stockRaw = text(formData, "stock");
+  const stock = stockRaw === "" ? null : Number.parseInt(stockRaw, 10);
+  if (stock !== null && (!Number.isFinite(stock) || stock < 0)) {
+    return {
+      ok: false,
+      error: "Stock must be a whole number of 0 or more, or empty to stop tracking it.",
+    };
+  }
+
   for (const key of ["coverImage", "image2", "image3", "image4"]) {
     const url = optional(formData, key);
     if (url && !/^https?:\/\//i.test(url)) {
@@ -71,6 +82,7 @@ function parse(formData: FormData): Parsed {
       image4: optional(formData, "image4"),
       price: price.toFixed(2),
       discount,
+      stock,
       size: optional(formData, "size"),
       keyIngredients: optional(formData, "keyIngredients"),
       description: optional(formData, "description"),
@@ -179,6 +191,40 @@ export async function updateProduct(
 
   refresh();
   redirect("/products");
+}
+
+/**
+ * Nudges one product's stock by `delta`, from the list.
+ *
+ * Restocking is the most repeated thing anyone does here, and going through the
+ * editor for "three more arrived" is three clicks and a page load too many.
+ *
+ * The arithmetic is done by the database rather than read-then-written here, so
+ * two people counting the same shelf cannot overwrite each other. The floor is
+ * applied in the `where`: a decrement that would go negative matches no row and
+ * leaves the count alone.
+ */
+export async function adjustStock(id: string, delta: number): Promise<void> {
+  await requireUserForAction();
+
+  if (!Number.isInteger(delta) || delta === 0) throw new Error("Not a stock change.");
+
+  const product = await prisma.product.findUnique({
+    where: { id },
+    select: { stock: true, archivedAt: true },
+  });
+  if (!product) throw new Error("That product no longer exists.");
+  if (product.archivedAt) throw new Error("Restore this product before changing its stock.");
+  if (product.stock === null) {
+    throw new Error("This product is not stock-tracked. Set a number in the editor first.");
+  }
+
+  await prisma.product.updateMany({
+    where: { id, stock: { gte: delta < 0 ? -delta : 0 } },
+    data: { stock: { increment: delta } },
+  });
+
+  refresh();
 }
 
 export async function archiveProduct(id: string): Promise<void> {

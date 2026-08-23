@@ -6,6 +6,7 @@ import { Filters, type FilterSpec } from "@/components/filters";
 import { Pagination } from "@/components/pagination";
 import { ProductImages } from "@/components/product-images";
 import { SearchInput } from "@/components/search-input";
+import { StockControl } from "@/components/stock-control";
 import { TransferButtons } from "@/components/transfer-buttons";
 import {
   Badge,
@@ -25,6 +26,7 @@ import { bestSellerIds, unitsSoldByProduct } from "@/lib/best-sellers";
 import { getCurrentUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { readWindow } from "@/lib/pagination";
+import { LOW_STOCK_AT } from "@/lib/stock";
 import { TRANSFERS } from "@/lib/transfer";
 
 export const metadata: Metadata = { title: "Products" };
@@ -39,6 +41,7 @@ export default async function ProductsPage({
     category?: string;
     collection?: string;
     skinType?: string;
+    stock?: string;
     page?: string;
     show?: string;
   }>;
@@ -47,6 +50,20 @@ export default async function ProductsPage({
   const showArchived = params.archived === "1";
   const search = (params.q ?? "").trim();
   const window = readWindow(params);
+
+  // Stock is a shelf question rather than a catalogue one, so it filters from
+  // its own row of links rather than the dropdowns below. "Untracked" is a
+  // state in its own right, not an absence — hence the explicit null tests.
+  const stockWhere =
+    params.stock === "out"
+      ? { stock: { lte: 0 } }
+      : params.stock === "low"
+        ? { stock: { gt: 0, lte: LOW_STOCK_AT } }
+        : params.stock === "tracked"
+          ? { stock: { not: null } }
+          : params.stock === "untracked"
+            ? { stock: null }
+            : {};
 
   // Every one of these lands in the query's `where`, so a filter narrows the
   // whole catalogue and the count below the table is the real total — not a
@@ -59,6 +76,7 @@ export default async function ProductsPage({
     ...(params.skinType
       ? { skinTypes: { some: { skinTypeId: params.skinType } } }
       : {}),
+    ...stockWhere,
     ...(search
       ? {
           OR: [
@@ -190,6 +208,40 @@ export default async function ProductsPage({
         <SearchInput placeholder="Search title, slug or SKU" />
       </div>
 
+      {/* Stock, as a row of links rather than another dropdown: "what is out"
+          is a question the shop asks every morning, and it should be one click
+          from the top of the page. */}
+      <FilterBar className="mb-4 min-w-0 gap-4">
+        {(
+          [
+            [undefined, "All stock"],
+            ["out", "Out of stock"],
+            ["low", `Low (${LOW_STOCK_AT} or fewer)`],
+            ["tracked", "Tracked"],
+            ["untracked", "Not tracked"],
+          ] as Array<[string | undefined, string]>
+        ).map(([value, label]) => {
+          const active = (params.stock ?? undefined) === value;
+          const query = new URLSearchParams();
+          if (showArchived) query.set("archived", "1");
+          if (search) query.set("q", search);
+          if (value) query.set("stock", value);
+          const href = query.toString() ? `/products?${query}` : "/products";
+
+          return (
+            <Link
+              key={label}
+              href={href}
+              className={
+                active ? "text-black underline underline-offset-4" : "text-brown hover:text-black"
+              }
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </FilterBar>
+
       <Filters filters={filters} />
 
       {products.length === 0 ? (
@@ -256,9 +308,13 @@ export default async function ProductsPage({
                     product.isLimited ||
                     product.isNewIn ||
                     product.discount > 0 ||
+                    (product.stock !== null && product.stock <= 0) ||
                     product.archivedAt) && (
                     <div className="pointer-events-none absolute left-2 top-2 z-10 flex max-w-[calc(100%-1rem)] flex-wrap gap-1">
                       {product.archivedAt && <Badge tone="warn">Archived</Badge>}
+                      {product.stock !== null && product.stock <= 0 && (
+                        <Badge tone="danger">Out of stock</Badge>
+                      )}
                       {bestSellers.has(product.id) && <Badge tone="success">Best seller</Badge>}
                       {product.isLimited && <Badge tone="warn">Limited</Badge>}
                       {product.isNewIn && <Badge>New in</Badge>}
@@ -313,6 +369,12 @@ export default async function ProductsPage({
                     <div className="flex gap-3">
                       <dt className="w-[86px] shrink-0 label-sm text-brown">Sold</dt>
                       <dd className="font-inter text-[13px] text-black tabular-nums">{sold}</dd>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <dt className="w-[86px] shrink-0 label-sm text-brown">Stock</dt>
+                      <dd>
+                        <StockControl id={product.id} stock={product.stock} />
+                      </dd>
                     </div>
                   </dl>
 

@@ -22,6 +22,8 @@ export interface ProductValues {
   image4: string;
   price: string;
   discount: string;
+  /** Empty means the shop does not count this product. */
+  stock: string;
   size: string;
   keyIngredients: string;
   description: string;
@@ -41,6 +43,7 @@ export const EMPTY_PRODUCT: ProductValues = {
   image4: "",
   price: "0",
   discount: "0",
+  stock: "",
   size: "",
   keyIngredients: "",
   description: "",
@@ -203,6 +206,23 @@ export function ProductForm({
                   <option key={size} value={size} />
                 ))}
               </datalist>
+
+              {/* Left empty on purpose by shops that do not count a product:
+                  those never read as sold out and never block a checkout. */}
+              <Field
+                label="Stock"
+                hint="Units on hand. Leave it empty not to track this one — it will never show as sold out."
+              >
+                <input
+                  name="stock"
+                  className={INPUT_CLASS}
+                  type="number"
+                  min={0}
+                  step={1}
+                  defaultValue={values.stock}
+                  placeholder="Not tracked"
+                />
+              </Field>
             </div>
           </Card>
         </div>

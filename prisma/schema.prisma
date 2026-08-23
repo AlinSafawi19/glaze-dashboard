@@ -121,6 +121,17 @@ model Product {
   /// Canopy "Description"
   description    String?    @db.Text
 
+  /// Units on hand.
+  ///
+  /// Null means this product is not stock-tracked: it never reads as sold out
+  /// and never blocks a checkout. That is the default so switching the feature
+  /// on does not mark the whole catalogue out of stock — the shop opts each
+  /// product in by typing a number.
+  ///
+  /// Never negative: checkout decrements conditionally, so the last unit can
+  /// only be taken once.
+  stock          Int?
+
   /// Canopy's "Sales type" was one enum with three options. Two of them are
   /// editorial choices and stay as flags; "Best seller" is earned, so the API
   /// derives it from order volume rather than storing it.
@@ -261,6 +272,13 @@ model Order {
   /// Order total in store currency, frozen at checkout.
   total  Decimal     @db.Decimal(10, 2)
   status OrderStatus @default(PENDING)
+
+  /// Whether this order is currently holding stock.
+  ///
+  /// Set when checkout takes the units, cleared when cancelling gives them
+  /// back. Without it a second cancel — or a cancel of an order placed before
+  /// stock tracking existed — would hand the shop units it never took.
+  stockTaken Boolean @default(false)
 
   /// Set when the shopper was signed in. Guest checkout stays open, so this is
   /// optional — and it survives the account being deleted, because the order's

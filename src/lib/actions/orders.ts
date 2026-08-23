@@ -36,7 +36,10 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
       payment: true,
       email: true,
       total: true,
-      items: { select: { title: true, quantity: true, unitPrice: true } },
+      stockTaken: true,
+      items: {
+        select: { title: true, quantity: true, unitPrice: true, productId: true },
+      },
     },
   });
   if (!order) throw new Error("That order no longer exists.");
@@ -54,7 +57,28 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
     );
   }
 
-  await prisma.order.update({ where: { id }, data: { status } });
+  if (status === "CANCELLED" && order.stockTaken) {
+    // Cancelling puts the units back on the shelf, in the same transaction as
+    // the status itself — a cancelled order that quietly kept holding its stock
+    // would show the shop as sold out of something sitting in the stockroom.
+    //
+    // `stockTaken` is cleared as part of it, so this can only run once. The
+    // increment is scoped to products that are still stock-tracked: one that
+    // was switched to untracked in the meantime has no count to give back to.
+    await prisma.$transaction([
+      ...order.items
+        .filter((item) => item.productId !== null)
+        .map((item) =>
+          prisma.product.updateMany({
+            where: { id: item.productId!, stock: { not: null } },
+            data: { stock: { increment: item.quantity } },
+          })
+        ),
+      prisma.order.update({ where: { id }, data: { status, stockTaken: false } }),
+    ]);
+  } else {
+    await prisma.order.update({ where: { id }, data: { status } });
+  }
 
   // Best-effort, and after the commit: the status has already changed, and the
   // shop must not see the update fail because an email provider had a bad

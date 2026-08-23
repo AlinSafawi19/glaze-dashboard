@@ -74,6 +74,8 @@ export const COLLECTIONS: Record<string, CollectionSpec> = {
       { name: "Brand", type: "relation", multiple: false, relation: "brands" },
       { name: "Skin Type", type: "relation", multiple: true, relation: "skin-types" },
       { name: "SKU", type: "number" },
+      { name: "Stock", type: "number" },
+      { name: "In stock", type: "text" },
       { name: "Size", type: "text" },
       { name: "Key Ingredients", type: "text" },
       { name: "Description", type: "text" },
@@ -198,6 +200,7 @@ const productSelect = {
   price: true,
   discount: true,
   sku: true,
+  stock: true,
   size: true,
   keyIngredients: true,
   description: true,
@@ -235,6 +238,12 @@ function serializeProduct(p: ProductRow, isBestSeller: boolean): Wire {
     // A zero discount is meaningful to the storefront's badge logic, so unlike
     // the other empty values it is always sent.
     Discount: String(p.discount),
+    // Both go out: "Stock" is the count, for anything that wants to say "2
+    // left"; "In stock" is the yes/no a card actually renders. A product the
+    // shop does not count sends neither, and the storefront reads that absence
+    // as "always available" — the same thing null means in the database.
+    Stock: p.stock === null ? undefined : String(p.stock),
+    "In stock": p.stock === null ? undefined : p.stock > 0 ? "yes" : "no",
     "Sales type": salesTypeFor(p, isBestSeller),
     Collections: ref(p.collection),
     // A list now, like "Skin Type" — the key stays singular because that is
