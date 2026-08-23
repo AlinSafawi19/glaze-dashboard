@@ -17,6 +17,49 @@ import {
 const PIPELINE: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
 
 /**
+ * What the dialog says before each move.
+ *
+ * Every step is confirmed, not just the final ones. Most of these are not a
+ * private note on a record — they email the shopper — and a mis-click on a
+ * busy list should not be the thing that tells someone their order shipped.
+ * The two that send nothing are confirmed anyway, because a step that cannot
+ * be walked back deserves the same pause as one that cannot be unsent.
+ *
+ * Each one says whether an email goes out, since that is the part that cannot
+ * be taken back.
+ */
+const CONFIRM: Record<
+  OrderStatus,
+  { title: string; body: string; label: string }
+> = {
+  PENDING: {
+    title: "Move this order back to pending?",
+    body: "The shopper is not emailed about this step.",
+    label: "Mark pending",
+  },
+  CONFIRMED: {
+    title: "Confirm this order?",
+    body: "The shopper is emailed that their order is confirmed and being put together, and that you will be in touch when it goes out.",
+    label: "Confirm order",
+  },
+  SHIPPED: {
+    title: "Mark this order shipped?",
+    body: "The shopper is emailed that their order is on its way, with the delivery address and the amount to have ready for the courier.",
+    label: "Mark shipped",
+  },
+  DELIVERED: {
+    title: "Mark this order delivered?",
+    body: "Delivered is the end of the line — the order cannot be moved again afterwards. The shopper is not emailed about this step.",
+    label: "Mark delivered",
+  },
+  CANCELLED: {
+    title: "Cancel this order?",
+    body: "The shopper is emailed that their order is cancelled and there is nothing to pay. A cancelled order cannot be reopened.",
+    label: "Cancel order",
+  },
+};
+
+/**
  * Moving an order along.
  *
  * This replaced a dropdown listing every status, which had two problems: it
@@ -25,8 +68,8 @@ const PIPELINE: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"]
  * moves actually available say what happens next, and nothing else is
  * offered, so the order of steps is the control rather than a rule to learn.
  *
- * The shopper is emailed on each move, so these are not silent — which is why
- * cancelling asks first.
+ * Most moves email the shopper, so these are not silent — which is why every
+ * one of them asks first.
  */
 export function StatusControl({
   id,
@@ -43,6 +86,8 @@ export function StatusControl({
 
   const buttons = next.map((target) => {
     const cancelling = target === "CANCELLED";
+    const copy = CONFIRM[target];
+
     return (
       <ActionButton
         key={target}
@@ -50,19 +95,17 @@ export function StatusControl({
         label={ADVANCE_LABEL[target]}
         pendingLabel="Saving"
         variant={
-          cancelling ? (variant === "full" ? "danger" : "rowDanger") : variant === "full" ? "primary" : "row"
-        }
-        // Both ends of the line are final and both email the shopper, so both
-        // ask first. The steps in between are recoverable by moving on.
-        confirm={
           cancelling
-            ? "The shopper is emailed that their order is cancelled, and a cancelled order cannot be reopened."
-            : target === "DELIVERED"
-              ? "The shopper is emailed that their order has arrived. A delivered order cannot be moved again."
-              : undefined
+            ? variant === "full"
+              ? "danger"
+              : "rowDanger"
+            : variant === "full"
+              ? "primary"
+              : "row"
         }
-        confirmTitle={cancelling ? "Cancel this order?" : "Mark this order delivered?"}
-        confirmLabel={cancelling ? "Cancel order" : "Mark delivered"}
+        confirm={copy.body}
+        confirmTitle={copy.title}
+        confirmLabel={copy.label}
       />
     );
   });

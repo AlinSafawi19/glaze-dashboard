@@ -99,10 +99,14 @@ export function orderPlacedCustomer(order: OrderEmailData, to: string): Outgoing
 /**
  * What the shopper is told at each step of an order's life.
  *
- * `PENDING` is deliberately absent. It is the state an order is created in, so
- * the confirmation sent at checkout already covers it — and a shop correcting
- * a mis-clicked status should not send "your order is pending" to someone who
- * was told yesterday it had shipped.
+ * `PENDING` and `DELIVERED` are deliberately absent, and a status with no entry
+ * here simply sends nothing.
+ *
+ * Pending is the state an order is created in, so the confirmation sent at
+ * checkout already covers it — and a shop correcting a mis-clicked status
+ * should not send "your order is pending" to someone who was told yesterday it
+ * had shipped. Delivered is not news to the shopper either: they were there
+ * when the courier handed the box over.
  */
 const STATUS_EMAIL: Partial<
   Record<OrderStatus, { eyebrow: string; heading: string; body: string; footnote: string }>
@@ -118,12 +122,6 @@ const STATUS_EMAIL: Partial<
     heading: "Your order is on its way",
     body: "Your order has left us and is with the courier. They will call the number on the order before they arrive, so keep it to hand.",
     footnote: "Payment is cash on delivery — please have the amount below ready for the courier.",
-  },
-  DELIVERED: {
-    eyebrow: "Delivered",
-    heading: "Your order has arrived",
-    body: "Your order has been delivered. We hope you love it — and if anything is not right, tell us and we will put it straight.",
-    footnote: "Something not right? Reply to this email and we will sort it out.",
   },
   CANCELLED: {
     eyebrow: "Cancelled",
@@ -176,8 +174,8 @@ export function orderStatusChanged(
             ]
           : []),
       ].join(""),
-      ...(STOREFRONT_URL && status === "DELIVERED"
-        ? { cta: { label: "Shop again", href: STOREFRONT_URL } }
+      ...(STOREFRONT_URL && status === "CONFIRMED"
+        ? { cta: { label: "Keep shopping", href: STOREFRONT_URL } }
         : {}),
       footnote: copy.footnote,
     }),
