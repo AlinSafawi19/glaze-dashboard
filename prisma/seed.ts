@@ -1,12 +1,13 @@
 /**
  * Seeds the Glaze database with the taxonomies and pages as they stood in Canopy.
  *
- * `seed-data.json` is a verbatim capture of the old CMS's public API, so a
- * reset always lands on the same content the storefront shipped against.
- * Everything is upserted by slug — re-running is safe and non-destructive.
+ * `seed-data.json` is a capture of the old CMS's public API, trimmed to the
+ * content a seed recreates, so a reset always lands on the same taxonomies
+ * and pages the storefront shipped against. Everything is upserted by slug —
+ * re-running is safe and non-destructive.
  *
- * Brands, products and ticker lines are deliberately not seeded: they are the
- * client's own catalogue and copy, entered through the dashboard.
+ * Products are deliberately not seeded: they are the client's own catalogue,
+ * entered through the dashboard.
  */
 
 import { createHash, randomBytes } from "node:crypto";
@@ -31,25 +32,16 @@ interface RawUtilityPage extends RawNamed {
 }
 
 interface SeedData {
+  brands: RawNamed[];
   categories: RawNamed[];
   collections: RawNamed[];
   "skin-types": RawNamed[];
+  ticker: RawNamed[];
   "utility-pages": RawUtilityPage[];
 }
 
 /** Captured utility pages that should not be recreated by a seed. */
 const SKIPPED_UTILITY_PAGES = new Set(["return-policy"]);
-
-/**
- * Captured skin types that should not be recreated by a seed.
- *
- * "All skin types" read as a promise the filter could not keep. The shop page
- * matches a product against the skin types it is actually tagged with, so a
- * product wearing only this one dropped out of every specific filter — a
- * shopper looking for something for dry skin would never see it. Products carry
- * the specific types they suit instead.
- */
-const SKIPPED_SKIN_TYPES = new Set(["all-skin-types"]);
 
 // ── seed ─────────────────────────────────────────────────────────────────────
 
@@ -59,6 +51,16 @@ async function main() {
   );
 
   // 1. Taxonomies and pages.
+  // The storefront lists brands A–Z rather than by `sortIndex`, so the order
+  // they are seeded in only decides the tie-break between identical names.
+  for (const [i, b] of data.brands.entries()) {
+    await prisma.brand.upsert({
+      where: { slug: b.Slug },
+      create: { slug: b.Slug, title: b.Title, sortIndex: i },
+      update: { title: b.Title },
+    });
+  }
+
   for (const [i, c] of data.categories.entries()) {
     await prisma.category.upsert({
       where: { slug: c.Slug },
@@ -75,11 +77,7 @@ async function main() {
     });
   }
 
-  // The capture is left verbatim; the ones the shop no longer files under are
-  // skipped here rather than deleted from it.
-  const skinTypes = data["skin-types"].filter((s) => !SKIPPED_SKIN_TYPES.has(s.Slug));
-
-  for (const [i, s] of skinTypes.entries()) {
+  for (const [i, s] of data["skin-types"].entries()) {
     await prisma.skinType.upsert({
       where: { slug: s.Slug },
       create: { slug: s.Slug, title: s.Title, sortIndex: i },
@@ -87,8 +85,15 @@ async function main() {
     });
   }
 
-  // The capture is left verbatim; pages the shop no longer publishes are
-  // skipped here rather than deleted from it.
+  for (const [i, t] of data.ticker.entries()) {
+    await prisma.tickerItem.upsert({
+      where: { slug: t.Slug },
+      create: { slug: t.Slug, title: t.Title, sortIndex: i },
+      update: { title: t.Title },
+    });
+  }
+
+  // Pages the shop no longer publishes are skipped here rather than seeded.
   const utilityPages = data["utility-pages"].filter(
     (u) => !SKIPPED_UTILITY_PAGES.has(u.Slug)
   );
@@ -102,7 +107,7 @@ async function main() {
   }
 
   // 2. Owner account.
-  const email = (process.env.SEED_OWNER_EMAIL || "owner@glaze.store").toLowerCase();
+  const email = (process.env.SEED_OWNER_EMAIL || "hello@glazekorea.com").toLowerCase();
   const name = process.env.SEED_OWNER_NAME || "Glaze Owner";
   const existingOwner = await prisma.user.findUnique({ where: { email } });
 
@@ -148,9 +153,11 @@ async function main() {
   }
 
   const counts = {
+    brands: await prisma.brand.count(),
     categories: await prisma.category.count(),
     collections: await prisma.collection.count(),
     skinTypes: await prisma.skinType.count(),
+    ticker: await prisma.tickerItem.count(),
     utilityPages: await prisma.utilityPage.count(),
   };
   console.log(`\n  Seeded:`, counts, "\n");

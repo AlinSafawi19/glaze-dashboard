@@ -1,258 +1,124 @@
 {
   "brands": [
     {
-      "id": "cIRwjpmhaMRwLD_MdqTuE",
-      "Slug": "dior",
-      "Title": "Dior"
+      "Slug": "anua",
+      "Title": "Anua"
     },
     {
-      "id": "LRA43NABq_HvnxYyrVqrg",
-      "Slug": "clinique",
-      "Title": "Clinique"
+      "Slug": "a-pieu",
+      "Title": "A'pieu"
     },
     {
-      "id": "OsmOAyij-vxdiJ9rbCWyt",
-      "Slug": "kiehl-s",
-      "Title": "Kiehl's"
+      "Slug": "axis-y",
+      "Title": "AXIS-Y"
     },
     {
-      "id": "x4GdSU7kiLceGSlfP_Q3A",
-      "Slug": "loreal",
-      "Title": "L'oreal"
+      "Slug": "beauty-of-joseon",
+      "Title": "Beauty of Joseon"
     },
     {
-      "id": "9_HdUf-lwlfDPiPMDHLQK",
-      "Slug": "mac",
-      "Title": "Mac"
+      "Slug": "celimax",
+      "Title": "Celimax"
+    },
+    {
+      "Slug": "centella",
+      "Title": "CENTELLA"
+    },
+    {
+      "Slug": "cosrx",
+      "Title": "COSRX"
+    },
+    {
+      "Slug": "dr-althea",
+      "Title": "Dr. Althea"
+    },
+    {
+      "Slug": "dr-melaxin",
+      "Title": "Dr. Melaxin"
+    },
+    {
+      "Slug": "embryolisse",
+      "Title": "EMBRYOLISSE"
+    },
+    {
+      "Slug": "epii",
+      "Title": "EPII"
+    },
+    {
+      "Slug": "eqqalberry",
+      "Title": "EQQALBERRY"
+    },
+    {
+      "Slug": "medicube",
+      "Title": "Medicube"
+    },
+    {
+      "Slug": "numbuzin",
+      "Title": "Numbuzin"
+    },
+    {
+      "Slug": "sakura",
+      "Title": "Sakura"
     }
   ],
   "categories": [
     {
-      "id": "Qu5U7Ir7fHYSPCMla2Z3-",
-      "Slug": "cleanser",
-      "Title": "Cleanser"
+      "Slug": "cleansers",
+      "Title": "Cleansers"
     },
     {
-      "id": "hvS9xgNyW0lUr_8spP9AZ",
       "Slug": "serums",
       "Title": "Serums"
+    },
+    {
+      "Slug": "toners",
+      "Title": "Toners"
+    },
+    {
+      "Slug": "hair-care",
+      "Title": "Hair Care"
+    },
+    {
+      "Slug": "lip-care",
+      "Title": "Lip Care"
+    },
+    {
+      "Slug": "moisturizers",
+      "Title": "Moisturizers"
+    },
+    {
+      "Slug": "creams",
+      "Title": "Creams"
+    },
+    {
+      "Slug": "masks-patches",
+      "Title": "Masks & Patches"
+    },
+    {
+      "Slug": "sunscreens",
+      "Title": "Sunscreens"
+    },
+    {
+      "Slug": "eye-care",
+      "Title": "Eye Care"
     }
   ],
   "collections": [
     {
       "id": "RNQJ6CqIU4xexm5Ughyk2",
-      "Slug": "skin-care",
-      "Title": "SkinCare",
+      "Slug": "products",
+      "Title": "Products",
       "tagline": "gentle, nourishing, essential",
       "ButtonPath": "/shop-all",
       "ButtonText": "Explore"
     },
     {
       "id": "c-MTVUmHrXEVvJsfKe8Xm",
-      "Slug": "offers",
-      "Title": "Offers"
-    }
-  ],
-  "products": [
-    {
-      "id": "YxAg84rt948KT-wXHsBfF",
-      "SKU": "15509",
-      "Size": "125ml — 14.9% vol.",
-      "Slug": "marble-mortar",
-      "Brand": "clinique",
-      "Img 2": "https://framerusercontent.com/images/77XwxUceMMTKDMU0k98ktGi572o.png",
-      "Img 3": "https://framerusercontent.com/images/6M2Xvua6Ti8WSAQ6teib1xWRGCc.png",
-      "Img 4": "https://framerusercontent.com/images/4H6T7G8OSYdgvHNqAFosh35ueag.png",
-      "Price": "120",
-      "Title": "Marble Mortar",
-      "Category": "cleanser",
-      "Discount": "10",
-      "Collections": {
-        "id": "c-MTVUmHrXEVvJsfKe8Xm",
-        "Slug": "offers",
-        "Title": "Offers"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/GiOEF3hO5lV9KFiyRBlfr0sSnVw.png",
-      "Description": "Smooth, rich, essential. A tactile blend that nourishes deeply, leaving a soft and refined finish on the skin.",
-      "Key Ingredients": "Mineral Clay, Shea Butter, Almond Oil",
-      "Limited": true
-    },
-    {
-      "id": "lF3lwQ2xJrSZgOMmXV0lm",
-      "SKU": "15510",
-      "Size": "100ml — 12% vol.",
-      "Slug": "elegant-fragrance",
-      "Brand": "kiehl-s",
-      "Img 2": "https://framerusercontent.com/images/Ij6q7GY2MGEXGnoVyGlvXdFyUvY.png",
-      "Img 3": "https://framerusercontent.com/images/FqFcxoQjYojNSr5yfJjzyhlGHY8.png",
-      "Img 4": "https://framerusercontent.com/images/DGqob6G7MttL6D88S9TC4pBniiA.png",
-      "Price": "210",
-      "Title": "Elegant Fragrance",
-      "Category": "serums",
-      "Discount": "25",
-      "Collections": {
-        "id": "c-MTVUmHrXEVvJsfKe8Xm",
-        "Slug": "offers",
-        "Title": "Offers"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/h5oZpVtdISGZXny3dF1c0P4T1Q.png",
-      "Description": "Soft, warm, graceful. A delicate composition that unfolds slowly, leaving a refined and lasting impression.",
-      "Key Ingredients": "Rose, Vanilla, Sandalwood"
-    },
-    {
-      "id": "WwOdydaxw7vWJJyaYcy-q",
-      "SKU": "15511",
-      "Size": "125ml — 14.9% vol.",
-      "Slug": "black-pump",
-      "Brand": "loreal",
-      "Img 2": "https://framerusercontent.com/images/5E9MADBSy7p8ujeNkOTaIcJLCt8.png",
-      "Img 3": "https://framerusercontent.com/images/i3Y3tE3uUZay8OmNz5impFzrKI.png",
-      "Img 4": "https://framerusercontent.com/images/9ziQAryMlqvDOsCXQCELFwVKQ.png",
-      "Price": "85",
-      "Title": "Black Pump",
-      "Category": "cleanser",
-      "Discount": "0",
-      "Collections": {
-        "id": "RNQJ6CqIU4xexm5Ughyk2",
-        "Slug": "skin-care",
-        "Title": "SkinCare",
-        "tagline": "gentle, nourishing, essential",
-        "ButtonPath": "/shop-all",
-        "ButtonText": "Explore"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/hsTMXWs3WpfG5MLadJe3YzsE.png",
-      "Description": "Deep, clean, refreshing. A purifying formula that clears and energizes, revealing a balanced, healthy glow.",
-      "Key Ingredients": "Charcoal, Tea Tree, Mint",
-      "New in": true
-    },
-    {
-      "id": "UeUiKORssk0abPjQRw-mL",
-      "SKU": "15513",
-      "Size": "120ml — 13.5% vol.",
-      "Slug": "noire-amber",
-      "Brand": "mac",
-      "Img 2": "https://framerusercontent.com/images/uhpxT44pSM39wTN1p4kSctrfuDs.png",
-      "Img 3": "https://framerusercontent.com/images/aUFg2oYHHRgqpWbGqLEFZTNoGoQ.png",
-      "Img 4": "https://framerusercontent.com/images/ev3Bdn4E8PZEzFjRse9uR7X0BFc.png",
-      "Price": "105",
-      "Title": "Noire Amber",
-      "Category": "cleanser",
-      "Discount": "0",
-      "Collections": {
-        "id": "RNQJ6CqIU4xexm5Ughyk2",
-        "Slug": "skin-care",
-        "Title": "SkinCare",
-        "tagline": "gentle, nourishing, essential",
-        "ButtonPath": "/shop-all",
-        "ButtonText": "Explore"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/VzIAngeVH1OOEd4o5iqv23Iq7Z4.png",
-      "Description": "Deep, smoky, magnetic. A bold composition with warmth and intensity, leaving a lasting signature.",
-      "Key Ingredients": "Amber, Oud, Spice Blend"
-    },
-    {
-      "id": "FYYPABMzvnFEXdq3cit9b",
-      "SKU": "15514",
-      "Size": "125ml — 14.9% vol.",
-      "Slug": "serene-aesthetic",
-      "Brand": "dior",
-      "Img 2": "https://framerusercontent.com/images/kxPn0hS6C3brdGVJbtYHmab8Ic.png",
-      "Img 3": "https://framerusercontent.com/images/7vynZlxdkGch0Ak2zTTzvvoNYc.png",
-      "Img 4": "https://framerusercontent.com/images/Zhb1XtfWB8pYnL51t1R3B1RzXxE.png",
-      "Price": "140",
-      "Title": "Serene Aesthetic",
-      "Category": "serums",
-      "Discount": "20",
-      "Collections": {
-        "id": "c-MTVUmHrXEVvJsfKe8Xm",
-        "Slug": "offers",
-        "Title": "Offers"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/Bb3g3nAGKNveUeebsFeCdiPcCHI.png",
-      "Description": "Calm, soft, weightless. Designed to bring balance and serenity, wrapping the skin in quiet comfort.",
-      "Key Ingredients": "Chamomile, Lavender, Rice Water",
-      "New in": true
-    },
-    {
-      "id": "it5KYdL06oZSV90ODKaPU",
-      "SKU": "15516",
-      "Size": "125ml — 14.9% vol.",
-      "Slug": "beauty-flat-lay",
-      "Brand": "clinique",
-      "Img 2": "https://framerusercontent.com/images/utawk4lLH0zbHbEvxGsqgkOnSM.png",
-      "Img 3": "https://framerusercontent.com/images/tGptvn8Avb6sbti3JcfRDhEruBo.png",
-      "Img 4": "https://framerusercontent.com/images/GdX3ilWgzsbu1g1pGt75NyPUmo.png",
-      "Price": "75",
-      "Title": "Beauty Flat Lay",
-      "Category": "cleanser",
-      "Discount": "15",
-      "Collections": {
-        "id": "RNQJ6CqIU4xexm5Ughyk2",
-        "Slug": "skin-care",
-        "Title": "SkinCare",
-        "tagline": "gentle, nourishing, essential",
-        "ButtonPath": "/shop-all",
-        "ButtonText": "Explore"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/kEZiyzoHp5GZjilDZTHAcEQjU.png",
-      "Description": "Bright, fresh, radiant. A lightweight blend that enhances natural glow and brings a luminous finish.",
-      "Key Ingredients": "Vitamin C, Citrus Extract, Hyaluronic Acid",
-      "Limited": true
-    },
-    {
-      "id": "XTmh6eGmR8CgUcguv8nzn",
-      "SKU": "15507",
-      "Size": "125ml — 14.9% vol.",
-      "Slug": "eternal-musk",
-      "Brand": "clinique",
-      "Img 2": "https://framerusercontent.com/images/PJQctG4DlYWEKKj6REZUslr7c4.png",
-      "Img 3": "https://framerusercontent.com/images/ka8Xy0jE4zk7pa4hPGVPrFQMf0o.png",
-      "Img 4": "https://framerusercontent.com/images/gvB0Zg151NCdpssN9IMCoCvDM.png",
-      "Price": "120",
-      "Title": "Eternal Musk",
-      "Category": "cleanser",
-      "Discount": "30",
-      "Collections": {
-        "id": "RNQJ6CqIU4xexm5Ughyk2",
-        "Slug": "skin-care",
-        "Title": "SkinCare",
-        "tagline": "gentle, nourishing, essential",
-        "ButtonPath": "/shop-all",
-        "ButtonText": "Explore"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/MHCn71G1n3xgb3x3n7g0PIA2HT4.png",
-      "Description": "Fresh, sharp, juicy. Ours moves you in a shimmer of music. Likes a little rhythm on the hips. And that golden nectar on your lips.",
-      "Key Ingredients": "Tequila, Mango, Triple Sec, Lime"
-    },
-    {
-      "id": "-B8SCZ1P5HXtqIF35LR89",
-      "SKU": "15507",
-      "Size": "125ml — 14.9% vol.",
-      "Slug": "primally-pure",
-      "Brand": "kiehl-s",
-      "Img 2": "https://framerusercontent.com/images/PJQctG4DlYWEKKj6REZUslr7c4.png",
-      "Img 3": "https://framerusercontent.com/images/ka8Xy0jE4zk7pa4hPGVPrFQMf0o.png",
-      "Img 4": "https://framerusercontent.com/images/gvB0Zg151NCdpssN9IMCoCvDM.png",
-      "Price": "260",
-      "Title": "Primally Pure",
-      "Category": "serums",
-      "Discount": "20",
-      "Collections": {
-        "id": "c-MTVUmHrXEVvJsfKe8Xm",
-        "Slug": "offers",
-        "Title": "Offers"
-      },
-      "Cover img 1": "https://framerusercontent.com/images/WiqlSk8ESXlFwhkFkWoTSfSmWk.png",
-      "Description": "Fresh, sharp, juicy. Ours moves you in a shimmer of music. Likes a little rhythm on the hips. And that golden nectar on your lips.",
-      "Key Ingredients": "Tequila, Mango, Triple Sec, Lime"
+      "Slug": "bundles",
+      "Title": "Bundles"
     }
   ],
   "skin-types": [
-    {
-      "id": "5CMIePdpXFH1FUxvFfQ8D",
-      "Slug": "all-skin-types",
-      "Title": "All Skin Types"
-    },
     {
       "id": "x2JyRIreZfstWO98CUPFK",
       "Slug": "dry",
@@ -277,6 +143,20 @@
       "id": "qyJDyp9w2Seln69VjtBi6",
       "Slug": "normal",
       "Title": "Normal"
+    }
+  ],
+  "ticker": [
+    {
+      "Slug": "100-authentic",
+      "Title": "100% AUTHENTIC"
+    },
+    {
+      "Slug": "glaze",
+      "Title": "GLAZE"
+    },
+    {
+      "Slug": "korean-skincare",
+      "Title": "KOREAN SKINCARE"
     }
   ],
   "utility-pages": [
