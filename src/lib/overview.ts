@@ -290,7 +290,7 @@ export async function pipeline(take = 12): Promise<Pipeline> {
     }),
   ]);
 
-  const counts = { PENDING: 0, CONFIRMED: 0, SHIPPED: 0, DELIVERED: 0, CANCELLED: 0 } as Record<
+  const counts = { PENDING: 0, CONFIRMED: 0, SHIPPED: 0, CANCELLED: 0 } as Record<
     OrderStatus,
     number
   >;

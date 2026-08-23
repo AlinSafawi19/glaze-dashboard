@@ -99,14 +99,13 @@ export function orderPlacedCustomer(order: OrderEmailData, to: string): Outgoing
 /**
  * What the shopper is told at each step of an order's life.
  *
- * `PENDING` and `DELIVERED` are deliberately absent, and a status with no entry
- * here simply sends nothing.
+ * `PENDING` is deliberately absent, and a status with no entry here simply
+ * sends nothing.
  *
  * Pending is the state an order is created in, so the confirmation sent at
  * checkout already covers it — and a shop correcting a mis-clicked status
  * should not send "your order is pending" to someone who was told yesterday it
- * had shipped. Delivered is not news to the shopper either: they were there
- * when the courier handed the box over.
+ * had shipped.
  */
 const STATUS_EMAIL: Partial<
   Record<OrderStatus, { eyebrow: string; heading: string; body: string; footnote: string }>

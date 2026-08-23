@@ -151,7 +151,7 @@ export const TRANSFERS: Record<TransferKey, TransferSpec> = {
       "Title is the only required column.",
       "Brand, Categories, Collection and Skin Types are dropdowns in the Excel file — pick from what the shop already has. An unknown name is reported, never created.",
       "Categories and Skin Types take more than one: pick one from the dropdown, then type the rest after it separated by commas — “Cleanser, Toner”. Excel only offers one value at a time, so that column accepts typing as well as picking.",
-      "New in and Limited accept yes/no, true/false or 1/0.",
+      "New in and Limited are yes/no dropdowns. A file written by hand may use true/false or 1/0 instead.",
       "The slug and the SKU are issued automatically — there is nothing to fill in.",
       "Images are uploaded on the product's own page; an import never touches them.",
       "A row whose title already exists updates that product instead of adding a second.",
@@ -240,6 +240,14 @@ async function productDropdowns(): Promise<XlsxDropdown[]> {
       headers: ["Skin Types"],
       values: titles(skinTypes),
       multi: true,
+    },
+    // The badge flags are a fixed pair rather than a table, so this list is the
+    // same in every export.
+    {
+      label: "Yes or no",
+      headers: ["New in", "Limited"],
+      values: ["yes", "no"],
+      error: "Pick yes or no.",
     },
   ];
 }

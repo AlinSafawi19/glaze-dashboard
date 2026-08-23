@@ -40,6 +40,17 @@ interface SeedData {
 /** Captured utility pages that should not be recreated by a seed. */
 const SKIPPED_UTILITY_PAGES = new Set(["return-policy"]);
 
+/**
+ * Captured skin types that should not be recreated by a seed.
+ *
+ * "All skin types" read as a promise the filter could not keep. The shop page
+ * matches a product against the skin types it is actually tagged with, so a
+ * product wearing only this one dropped out of every specific filter — a
+ * shopper looking for something for dry skin would never see it. Products carry
+ * the specific types they suit instead.
+ */
+const SKIPPED_SKIN_TYPES = new Set(["all-skin-types"]);
+
 // ── seed ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -64,7 +75,11 @@ async function main() {
     });
   }
 
-  for (const [i, s] of data["skin-types"].entries()) {
+  // The capture is left verbatim; the ones the shop no longer files under are
+  // skipped here rather than deleted from it.
+  const skinTypes = data["skin-types"].filter((s) => !SKIPPED_SKIN_TYPES.has(s.Slug));
+
+  for (const [i, s] of skinTypes.entries()) {
     await prisma.skinType.upsert({
       where: { slug: s.Slug },
       create: { slug: s.Slug, title: s.Title, sortIndex: i },

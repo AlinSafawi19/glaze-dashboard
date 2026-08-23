@@ -275,6 +275,12 @@ export interface XlsxDropdown {
    * A tooltip on the cell says so, because the arrow alone does not.
    */
   multi?: boolean;
+  /**
+   * What Excel says when a typed value is not on the list. The default suits a
+   * list of the shop's own records; a fixed list like yes/no wants its own
+   * wording, since there is nothing to go and add.
+   */
+  error?: string;
 }
 
 export interface XlsxOptions {
@@ -321,8 +327,11 @@ export function toXlsx(options: XlsxOptions): Uint8Array {
         .filter((index) => index >= 0)
         .map((index) => {
           const letter = columnName(index);
-          const named = escapeXml(dropdown.label.toLowerCase());
           const example = escapeXml(dropdown.values.slice(0, 2).join(", "));
+          const error = escapeXml(
+            dropdown.error ??
+              `Pick one of the ${dropdown.label.toLowerCase()} we already have, or add it in the dashboard first.`
+          );
           const guidance = dropdown.multi
             ? [
                 ` showErrorMessage="0"`,
@@ -330,7 +339,7 @@ export function toXlsx(options: XlsxOptions): Uint8Array {
               ]
             : [
                 ` showErrorMessage="1"`,
-                ` errorTitle="Not on the list" error="Pick one of the ${named} we already have, or add it in the dashboard first."`,
+                ` errorTitle="Not on the list" error="${error}"`,
               ];
 
           return [

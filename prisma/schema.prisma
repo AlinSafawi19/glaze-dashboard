@@ -228,11 +228,12 @@ model UtilityPage {
 // rewrite history.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// Shipping is the last step the shop records: once the box is with the
+/// courier its part is done, so there is no separate "delivered".
 enum OrderStatus {
   PENDING   @map("Pending")
   CONFIRMED @map("Confirmed")
   SHIPPED   @map("Shipped")
-  DELIVERED @map("Delivered")
   CANCELLED @map("Cancelled")
 }
 

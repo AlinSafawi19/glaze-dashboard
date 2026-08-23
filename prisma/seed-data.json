@@ -274,11 +274,6 @@
       "Title": "Sensitive"
     },
     {
-      "id": "TPtw5-2V1oWQSbPFFO_Wz",
-      "Slug": "acne-prone",
-      "Title": "Acne-Prone"
-    },
-    {
       "id": "qyJDyp9w2Seln69VjtBi6",
       "Slug": "normal",
       "Title": "Normal"
@@ -290,12 +285,6 @@
       "Slug": "terms-of-use",
       "Title": "Terms of Use",
       "Content": "<h5 dir=\"auto\">General</h5><p dir=\"auto\">By accessing and using LOISEAU, you are entirely agreeing to comply with these Terms of Use.</p><ul dir=\"auto\"><li data-preset-tag=\"p\"><p>These terms apply to all visitors, users, and customers of the website.</p></li><li data-preset-tag=\"p\"><p>We reserve the right to update or modify these terms at any time without prior notice.</p></li></ul><h5 dir=\"auto\">Products &amp; Availability</h5><p dir=\"auto\">All products are subject to availability and may be withdrawn at any time.</p><p dir=\"auto\">We make every effort to display accurate descriptions, images, and pricing; however, we do not guarantee that all information is error-free.</p><p dir=\"auto\">LOISEAU reserves the right to correct any inaccuracies and to cancel orders if necessary.</p><h5 dir=\"auto\">Orders &amp; Payments</h5><p dir=\"auto\">By placing an order, you agree to provide accurate and complete information.</p><ul dir=\"auto\"><li data-preset-tag=\"p\"><p>Payments must be made through approved payment methods available at checkout.<br><br class=\"trailing-break\"></p></li><li data-preset-tag=\"p\"><p>We reserve the right to refuse or cancel any order if fraud or unauthorized activity is suspected.</p></li></ul><h5 dir=\"auto\">Intellectual Property</h5><p dir=\"auto\">Unauthorized use may result in legal action.</p><p dir=\"auto\">All content on this website, including text, images, branding, and design elements, is the property of LOISEAU and may not be copied, reproduced, or used without prior written permission.</p><h5 dir=\"auto\">Limitation of Liability</h5><p dir=\"auto\">LOISEAU shall not be held liable for any direct or indirect damages arising from the use or inability to use the website or its products.<br><br class=\"trailing-break\"></p><ul dir=\"auto\"><li data-preset-tag=\"p\"><p>By using this site, you agree that your use is at your own risk and that we are not responsible for any losses or damages incurred.</p></li></ul>"
-    },
-    {
-      "id": "CkWnpdP8heyJ9R9s6q1Ua",
-      "Slug": "return-policy",
-      "Title": "Return policy",
-      "Content": "<h5 dir=\"auto\">Shipping</h5><p dir=\"auto\">Each piece is thoughtfully crafted to order. Please allow 2–3 weeks for production before shipment.</p><p dir=\"auto\">Domestic shipping is included for larger pieces, while all other orders are subject to a flat-rate fee calculated at checkout.</p><p dir=\"auto\">If you have specific delivery instructions, please include a note at checkout or contact us directly.</p><p dir=\"auto\">RETURNS</p><p dir=\"auto\">All sales are considered final.</p><p dir=\"auto\">In the rare case that your item arrives damaged due to inadequate packaging on our part, please contact us. We will gladly arrange a replacement.</p><h5 dir=\"auto\">PACKAGING</h5><p dir=\"auto\">Every LOISEAU piece is carefully double-boxed and securely packed.</p><p dir=\"auto\">Using 100% recyclable materials, ensuring both protection and sustainability.</p><h5 dir=\"auto\">VAT &amp; Customs Duty</h5><p dir=\"auto\">Orders shipped internationally may be subject to import duties and taxes determined by your country’s regulations. These charges are collected by the local postal service on behalf of your government.</p><p dir=\"auto\">If duties are refused and the order is returned to us in its original condition, a refund will be issued excluding return shipping costs.</p><p dir=\"auto\">Please note:</p><ul dir=\"auto\"><li data-preset-tag=\"p\"><p>Abandoned packages are not eligible for refunds</p></li><li data-preset-tag=\"p\"><p>Items returned damaged cannot be refunded</p></li></ul>"
     }
   ]
 }

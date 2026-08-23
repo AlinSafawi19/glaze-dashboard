@@ -14,7 +14,7 @@ import {
 } from "@/lib/order-status";
 
 /** The happy path, in order. Cancelling steps off it rather than along it. */
-const PIPELINE: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
+const PIPELINE: OrderStatus[] = ["PENDING", "CONFIRMED", "SHIPPED"];
 
 /**
  * What the dialog says before each move.
@@ -44,13 +44,8 @@ const CONFIRM: Record<
   },
   SHIPPED: {
     title: "Mark this order shipped?",
-    body: "The shopper is emailed that their order is on its way, with the delivery address and the amount to have ready for the courier.",
+    body: "The shopper is emailed that their order is on its way, with the delivery address and the amount to have ready for the courier. This is the last step: afterwards the order can only be cancelled, or archived once the courier has settled up.",
     label: "Mark shipped",
-  },
-  DELIVERED: {
-    title: "Mark this order delivered?",
-    body: "Delivered is the end of the line — the order cannot be moved again afterwards. The shopper is not emailed about this step.",
-    label: "Mark delivered",
   },
   CANCELLED: {
     title: "Cancel this order?",
@@ -123,10 +118,10 @@ export function StatusControl({
     <div className="flex flex-col gap-4">
       <Pipeline status={status} />
       {done ? (
+        // Cancelled is the only status with nowhere left to go: a shipped order
+        // keeps its cancel button, because the courier can still come back.
         <p className="font-inter text-[13px] font-light italic text-brown">
-          {status === "CANCELLED"
-            ? "This order was cancelled. Nothing further to do."
-            : "This order is complete. Nothing further to do."}
+          This order was cancelled. Nothing further to do.
         </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">{buttons}</div>
@@ -136,9 +131,9 @@ export function StatusControl({
 }
 
 /**
- * Where the order is on the line from placed to delivered. A cancelled order
- * has left the line, so it shows as its own state rather than being drawn
- * somewhere along it.
+ * Where the order is on the line from placed to shipped. A cancelled order has
+ * left the line, so it shows as its own state rather than being drawn somewhere
+ * along it.
  */
 function Pipeline({ status }: { status: OrderStatus }) {
   if (status === "CANCELLED") {

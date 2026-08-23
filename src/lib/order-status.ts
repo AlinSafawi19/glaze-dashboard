@@ -9,7 +9,6 @@ export const ORDER_STATUSES: OrderStatus[] = [
   "PENDING",
   "CONFIRMED",
   "SHIPPED",
-  "DELIVERED",
   "CANCELLED",
 ];
 
@@ -17,15 +16,14 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING: "Pending",
   CONFIRMED: "Confirmed",
   SHIPPED: "Shipped",
-  DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
 };
 
 export const STATUS_TONE: Record<OrderStatus, "neutral" | "success" | "warn" | "danger"> = {
   PENDING: "warn",
   CONFIRMED: "neutral",
-  SHIPPED: "neutral",
-  DELIVERED: "success",
+  // Shipped is the finish line now, so it reads as one.
+  SHIPPED: "success",
   CANCELLED: "danger",
 };
 
@@ -33,18 +31,18 @@ export const STATUS_TONE: Record<OrderStatus, "neutral" | "success" | "warn" | "
  * Where an order may go from where it is.
  *
  * An order moves forward or it is called off; it never goes back. Once it has
- * shipped, "confirmed" is not a thing that can become true again, and a
- * delivered order is finished — reopening one would tell the shopper their
- * completed order had un-completed itself.
+ * shipped, "confirmed" is not a thing that can become true again — and shipping
+ * is as far as the line goes, because handing the box to the courier is where
+ * the shop's part ends.
  *
- * Cancelling stays available right up to delivery, because a courier can come
- * back with the box.
+ * Cancelling stays available after that, because a courier can come back with
+ * the box. A shipped order leaves the dashboard's open queue by being archived,
+ * not by moving on again.
  */
 export const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   PENDING: ["CONFIRMED", "CANCELLED"],
   CONFIRMED: ["SHIPPED", "CANCELLED"],
-  SHIPPED: ["DELIVERED", "CANCELLED"],
-  DELIVERED: [],
+  SHIPPED: ["CANCELLED"],
   CANCELLED: [],
 };
 
@@ -57,6 +55,5 @@ export const ADVANCE_LABEL: Record<OrderStatus, string> = {
   PENDING: "Mark pending",
   CONFIRMED: "Confirm order",
   SHIPPED: "Mark shipped",
-  DELIVERED: "Mark delivered",
   CANCELLED: "Cancel order",
 };

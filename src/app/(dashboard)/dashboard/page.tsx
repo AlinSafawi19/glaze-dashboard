@@ -136,7 +136,7 @@ export default async function OverviewPage({
         {openTotal === 0 ? (
           <EmptyState
             title="Nothing open"
-            description="Every order has been delivered or cancelled."
+            description="Every order has shipped, been cancelled or been archived."
           />
         ) : (
           <Table>

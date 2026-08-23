@@ -100,8 +100,9 @@ ticker items and utility pages, plus orders and customer accounts. Records are
 archived rather than deleted, so nothing that an order references disappears.
 
 - **Overview** — revenue chart, best sellers, recent orders.
-- **Orders** — five statuses (Pending, Confirmed, Shipped, Delivered,
-  Cancelled), with line items priced as they were at checkout.
+- **Orders** — four statuses (Pending, Confirmed, Shipped, Cancelled), with
+  line items priced as they were at checkout. Shipped is the finish line: the
+  shop's part ends when the courier takes the box.
 - **Customers** — accounts, saved carts and wishlists, order history.
 - **Settings** — staff, sessions and storefront API keys.
 - **CSV** — every collection exports at `/api/export/<resource>`; add
