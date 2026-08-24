@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { bearerFrom, verifyApiKey } from "@/lib/api-key";
 import { corsHeaders, json } from "@/lib/cors";
 import { COLLECTIONS, readCollection } from "@/lib/public-api";
+import { parseCollectionQuery, validateForCollection } from "@/lib/public-api-query";
 import { customerFromToken } from "@/lib/customer-auth";
 import { announceOrder } from "@/lib/notify";
 import { CheckoutError, checkoutSchema, placeOrder } from "@/lib/orders";
@@ -37,16 +38,28 @@ export async function GET(
     return json(request, { error: "Orders are write-only over this API" }, { status: 403 });
   }
 
-  const sp = request.nextUrl.searchParams;
-  const page = Math.max(1, Number.parseInt(sp.get("page") ?? "1", 10) || 1);
-  const rawLimit = Number.parseInt(sp.get("limit") ?? "20", 10);
-  const limit = Number.isFinite(rawLimit) && rawLimit >= 1 ? Math.min(rawLimit, 100) : 20;
+  // A bad filter is answered rather than ignored: a caller that mistypes
+  // `?brnad=` should be told, not handed the unfiltered catalogue as if it had
+  // asked for it.
+  const parsed = parseCollectionQuery(request.nextUrl.searchParams);
+  if (parsed.error) {
+    return json(request, { error: parsed.error.message }, { status: 400 });
+  }
+
+  const unsupported = validateForCollection(collection, parsed.query);
+  if (unsupported) {
+    return json(request, { error: unsupported.message }, { status: 400 });
+  }
+
+  const { page, limit } = parsed.query;
 
   try {
-    const result = await readCollection(collection, { page, limit });
+    const result = await readCollection(collection, parsed.query);
     if (!result) {
       return json(request, { error: "Collection not found" }, { status: 404 });
     }
+
+    const totalPages = Math.max(1, Math.ceil(result.total / limit));
 
     return json(request, {
       collection: { name: spec.name, slug: spec.slug, fields: spec.fields },
@@ -55,8 +68,12 @@ export async function GET(
         total: result.total,
         page,
         limit,
-        totalPages: Math.max(1, Math.ceil(result.total / limit)),
+        totalPages,
+        // Saves the caller recomputing it, and says plainly whether another
+        // request is worth making.
+        hasMore: page < totalPages,
       },
+      ...(result.facets ? { facets: result.facets } : {}),
     });
   } catch (error) {
     console.error("[api/v1 GET]", error);

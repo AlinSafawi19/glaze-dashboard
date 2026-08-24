@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 
 import { bestSellerIds } from "@/lib/best-sellers";
 import { prisma } from "@/lib/prisma";
+import { NON_ALPHA, type CollectionQuery, type Sort } from "@/lib/public-api-query";
 import { BY_ADDED, BY_NAME } from "@/lib/resources";
 
 /**
@@ -260,32 +261,160 @@ function serializeProduct(p: ProductRow, isBestSeller: boolean): Wire {
   });
 }
 
-export interface PageArgs {
-  page: number;
-  limit: number;
-}
-
 export interface PagedResult {
   data: Wire[];
   total: number;
+  /** Present only when the query asked for it. */
+  facets?: { initials?: string[] };
 }
 
-/** Reads one public collection. Archived rows are never exposed. */
+// -- query translation -------------------------------------------------------
+
+const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
+/** Live rows only - an archived row is never exposed over this API. */
+const LIVE = { archivedAt: null } as const;
+
+/**
+ * The subset of a `where` input that every public collection shares. Written
+ * out rather than borrowed from one model's generated type, so it cannot pick
+ * up a field the others do not have.
+ */
+type CommonWhere = {
+  archivedAt?: null;
+  slug?:  { in?: string[]; notIn?: string[] };
+  title?: { contains?: string; startsWith?: string; mode?: "insensitive" };
+  AND?:   CommonWhere[];
+  NOT?:   { OR: CommonWhere[] };
+};
+
+/**
+ * `startsWith` as a `where` fragment. A letter is a prefix match; `#` is
+ * everything a letter would not have caught, which is how the storefront's A-Z
+ * index groups digits and punctuation.
+ */
+function initialWhere(initial: string): CommonWhere {
+  if (initial !== NON_ALPHA) {
+    return { title: { startsWith: initial, mode: "insensitive" } };
+  }
+  return {
+    NOT: {
+      OR: ALPHABET.map((letter) => ({
+        title: { startsWith: letter, mode: "insensitive" as const },
+      })),
+    },
+  };
+}
+
+/**
+ * The `where` fragment every collection understands, since each one is a row
+ * with `slug`, `title` and `archivedAt`.
+ *
+ * Prisma generates a separate `WhereInput` per model and they are not mutually
+ * assignable, even where the fields used are identical. Rather than repeat a
+ * cast at each of the seven call sites, the caller names the model's input type
+ * and the single cast lives here.
+ */
+function commonWhere<W>(query: CollectionQuery): W {
+  const and: CommonWhere[] = [LIVE];
+
+  if (query.slugs.length > 0)   and.push({ slug: { in: query.slugs } });
+  if (query.exclude.length > 0) and.push({ slug: { notIn: query.exclude } });
+  if (query.search)             and.push({ title: { contains: query.search, mode: "insensitive" } });
+  if (query.startsWith)         and.push(initialWhere(query.startsWith));
+
+  return { AND: and } as W;
+}
+
+/** Product filters sit on top of the common ones. */
+function productWhere(query: CollectionQuery): Prisma.ProductWhereInput {
+  const and: Prisma.ProductWhereInput[] = [commonWhere<Prisma.ProductWhereInput>(query)];
+
+  // Within one filter the values are alternatives; across filters they narrow.
+  // "Cleanser or toner, by this brand" is what the shop's panel means when two
+  // boxes are ticked in one group and one in another.
+  if (query.categories.length > 0) {
+    and.push({ categories: { some: { category: { slug: { in: query.categories } } } } });
+  }
+  if (query.brands.length > 0) {
+    and.push({ brand: { slug: { in: query.brands } } });
+  }
+  if (query.collections.length > 0) {
+    and.push({ collection: { slug: { in: query.collections } } });
+  }
+  if (query.skinTypes.length > 0) {
+    and.push({ skinTypes: { some: { skinType: { slug: { in: query.skinTypes } } } } });
+  }
+
+  return { AND: and };
+}
+
+/** Orderings expressible on every collection - no model-specific column. */
+type CommonOrderBy = { title?: "asc" | "desc"; sortIndex?: "asc" | "desc"; createdAt?: "asc" | "desc" }[];
+
+/**
+ * Cast for the same reason {@link commonWhere} is: `title` and `createdAt`
+ * order every one of these models, but Prisma types the input per model.
+ * `price` never reaches here - `validateForCollection` turns it away before
+ * a non-product collection is read.
+ */
+function commonOrder<O>(sort: Sort | null, fallback: CommonOrderBy): O {
+  switch (sort) {
+    case "name":   return BY_NAME as O;
+    case "newest": return [{ createdAt: "desc" }] as O;
+    case "oldest": return [{ createdAt: "asc" }] as O;
+    case "added":  return BY_ADDED as O;
+    default:       return fallback as O;
+  }
+}
+
+function productOrder(sort: Sort | null): Prisma.ProductOrderByWithRelationInput[] {
+  if (sort === "price")  return [{ price: "asc" }];
+  if (sort === "-price") return [{ price: "desc" }];
+  return commonOrder<Prisma.ProductOrderByWithRelationInput[]>(sort, BY_ADDED);
+}
+
+/**
+ * Every distinct first letter across a collection, for an A-Z index that has to
+ * know which letters are worth offering without holding the list itself. Titles
+ * only, so the cost stays a single narrow column.
+ */
+async function initialsOf(
+  model: { findMany: (args: unknown) => Promise<{ title: string }[]> },
+  where: unknown,
+): Promise<string[]> {
+  const rows = await model.findMany({ where, select: { title: true } });
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const first = row.title.trim().charAt(0).toUpperCase();
+    seen.add(ALPHABET.includes(first) ? first : NON_ALPHA);
+  }
+  return [...seen].sort();
+}
+
+/**
+ * Reads one public collection. Archived rows are never exposed.
+ *
+ * Filtering, searching, sorting and paging all happen in the database, so what
+ * comes back is the page the caller asked for - never a slice that still has to
+ * be narrowed at the other end.
+ */
 export async function readCollection(
   slug: string,
-  { page, limit }: PageArgs
+  query: CollectionQuery
 ): Promise<PagedResult | null> {
+  const { page, limit } = query;
   const skip = (page - 1) * limit;
-  const live = { archivedAt: null };
-  const order = BY_ADDED;
+  const wantsInitials = query.facets.includes("initials");
 
   switch (slug) {
     case "products": {
+      const where = productWhere(query);
       const [total, rows, bestSellers] = await Promise.all([
-        prisma.product.count({ where: live }),
+        prisma.product.count({ where }),
         prisma.product.findMany({
-          where: live,
-          orderBy: order,
+          where,
+          orderBy: productOrder(query.sort),
           skip,
           take: limit,
           select: productSelect,
@@ -296,22 +425,26 @@ export async function readCollection(
     }
 
     case "brands": {
-      const [total, rows] = await Promise.all([
-        prisma.brand.count({ where: live }),
+      const where = commonWhere<Prisma.BrandWhereInput>(query);
+      const [total, rows, initials] = await Promise.all([
+        prisma.brand.count({ where }),
         prisma.brand.findMany({
-          where: live,
-          // The storefront renders brands as an A–Z index, so they are sorted
+          where,
+          // The storefront renders brands as an A-Z index, so they are sorted
           // by name here rather than by when the shop added them.
-          orderBy: BY_NAME,
+          orderBy: commonOrder<Prisma.BrandOrderByWithRelationInput[]>(query.sort, BY_NAME),
           skip,
           take: limit,
           select: {
             id: true,
             slug: true,
             title: true,
-            _count: { select: { products: { where: live } } },
+            _count: { select: { products: { where: LIVE } } },
           },
         }),
+        // Deliberately across every live brand, not the filtered set: the index
+        // has to keep offering the other letters once one has been picked.
+        wantsInitials ? initialsOf(prisma.brand as never, LIVE) : undefined,
       ]);
       return {
         total,
@@ -324,15 +457,17 @@ export async function readCollection(
             "Product counts": String(b._count.products),
           })
         ),
+        ...(initials ? { facets: { initials } } : {}),
       };
     }
 
     case "categories": {
+      const where = commonWhere<Prisma.CategoryWhereInput>(query);
       const [total, rows] = await Promise.all([
-        prisma.category.count({ where: live }),
+        prisma.category.count({ where }),
         prisma.category.findMany({
-          where: live,
-          orderBy: order,
+          where,
+          orderBy: commonOrder<Prisma.CategoryOrderByWithRelationInput[]>(query.sort, BY_ADDED),
           skip,
           take: limit,
           select: { id: true, slug: true, title: true },
@@ -345,18 +480,19 @@ export async function readCollection(
     }
 
     case "collections": {
+      const where = commonWhere<Prisma.CollectionWhereInput>(query);
       const [total, rows] = await Promise.all([
-        prisma.collection.count({ where: live }),
+        prisma.collection.count({ where }),
         prisma.collection.findMany({
-          where: live,
-          orderBy: order,
+          where,
+          orderBy: commonOrder<Prisma.CollectionOrderByWithRelationInput[]>(query.sort, BY_ADDED),
           skip,
           take: limit,
           select: {
             id: true,
             slug: true,
             title: true,
-            _count: { select: { products: { where: live } } },
+            _count: { select: { products: { where: LIVE } } },
           },
         }),
       ]);
@@ -374,11 +510,12 @@ export async function readCollection(
     }
 
     case "skin-types": {
+      const where = commonWhere<Prisma.SkinTypeWhereInput>(query);
       const [total, rows] = await Promise.all([
-        prisma.skinType.count({ where: live }),
+        prisma.skinType.count({ where }),
         prisma.skinType.findMany({
-          where: live,
-          orderBy: order,
+          where,
+          orderBy: commonOrder<Prisma.SkinTypeOrderByWithRelationInput[]>(query.sort, BY_ADDED),
           skip,
           take: limit,
           select: { id: true, slug: true, title: true },
@@ -391,11 +528,12 @@ export async function readCollection(
     }
 
     case "ticker": {
+      const where = commonWhere<Prisma.TickerItemWhereInput>(query);
       const [total, rows] = await Promise.all([
-        prisma.tickerItem.count({ where: live }),
+        prisma.tickerItem.count({ where }),
         prisma.tickerItem.findMany({
-          where: live,
-          orderBy: order,
+          where,
+          orderBy: commonOrder<Prisma.TickerItemOrderByWithRelationInput[]>(query.sort, BY_ADDED),
           skip,
           take: limit,
           select: { id: true, slug: true, title: true },
@@ -408,11 +546,12 @@ export async function readCollection(
     }
 
     case "utility-pages": {
+      const where = commonWhere<Prisma.UtilityPageWhereInput>(query);
       const [total, rows] = await Promise.all([
-        prisma.utilityPage.count({ where: live }),
+        prisma.utilityPage.count({ where }),
         prisma.utilityPage.findMany({
-          where: live,
-          orderBy: order,
+          where,
+          orderBy: commonOrder<Prisma.UtilityPageOrderByWithRelationInput[]>(query.sort, BY_ADDED),
           skip,
           take: limit,
           select: { id: true, slug: true, title: true, content: true },

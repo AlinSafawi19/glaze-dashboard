@@ -8,6 +8,7 @@
     "start": "cross-env NODE_ENV=production tsx server.ts",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "check:api": "tsx scripts/check-public-api-query.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "prisma migrate dev",
