@@ -74,6 +74,8 @@ export async function loadProduct(
     size: product.size ?? "",
     keyIngredients: product.keyIngredients ?? "",
     description: product.description ?? "",
+    bestFor: product.bestFor ?? "",
+    benefits: product.benefits ?? "",
     isNewIn: product.isNewIn,
     isLimited: product.isLimited,
     brandId: product.brandId ?? "",

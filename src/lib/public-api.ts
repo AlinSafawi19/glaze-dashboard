@@ -80,6 +80,8 @@ export const COLLECTIONS: Record<string, CollectionSpec> = {
       { name: "Size", type: "text" },
       { name: "Key Ingredients", type: "text" },
       { name: "Description", type: "text" },
+      { name: "Best For", type: "text" },
+      { name: "Benefits", type: "text" },
       { name: "Created", type: "date" },
       { name: "Edited", type: "date" },
     ],
@@ -205,6 +207,8 @@ const productSelect = {
   size: true,
   keyIngredients: true,
   description: true,
+  bestFor: true,
+  benefits: true,
   isNewIn: true,
   isLimited: true,
   // "Created" and "Edited" on the wire are the row's own timestamps — the
@@ -256,6 +260,8 @@ function serializeProduct(p: ProductRow, isBestSeller: boolean): Wire {
     Size: p.size,
     "Key Ingredients": p.keyIngredients,
     Description: p.description,
+    "Best For": p.bestFor,
+    Benefits: p.benefits,
     Created: day(p.createdAt),
     Edited: day(p.updatedAt),
   });

@@ -120,6 +120,12 @@ model Product {
   keyIngredients String?    @db.VarChar(500)
   /// Canopy "Description"
   description    String?    @db.Text
+  /// Who the product is for — a short comma-separated list of concerns or skin
+  /// states, shown under the description on the storefront.
+  bestFor        String?    @db.VarChar(500)
+  /// What the product does. Longer than `bestFor` because the shop writes it as
+  /// prose or as a list, so it gets the same room as the description.
+  benefits       String?    @db.Text
 
   /// Units on hand.
   ///

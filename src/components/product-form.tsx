@@ -27,6 +27,8 @@ export interface ProductValues {
   size: string;
   keyIngredients: string;
   description: string;
+  bestFor: string;
+  benefits: string;
   isNewIn: boolean;
   isLimited: boolean;
   brandId: string;
@@ -47,6 +49,8 @@ export const EMPTY_PRODUCT: ProductValues = {
   size: "",
   keyIngredients: "",
   description: "",
+  bestFor: "",
+  benefits: "",
   isNewIn: false,
   isLimited: false,
   brandId: "",
@@ -171,6 +175,25 @@ export function ProductForm({
                 defaultValue={values.keyIngredients}
                 maxLength={500}
                 placeholder="Rose, Vanilla, Sandalwood"
+              />
+            </Field>
+
+            <Field label="Best for" hint="Who it suits — shown under the description.">
+              <input
+                name="bestFor"
+                className={INPUT_CLASS}
+                defaultValue={values.bestFor}
+                maxLength={500}
+                placeholder="Dry, dull or dehydrated skin"
+              />
+            </Field>
+
+            <Field label="Benefits" hint="What it does — shown under “Best for”.">
+              <textarea
+                name="benefits"
+                className={`${INPUT_CLASS} min-h-[110px]`}
+                defaultValue={values.benefits}
+                placeholder="Deeply hydrates, softens fine lines, evens tone…"
               />
             </Field>
           </Card>

@@ -86,6 +86,8 @@ function parse(formData: FormData): Parsed {
       size: optional(formData, "size"),
       keyIngredients: optional(formData, "keyIngredients"),
       description: optional(formData, "description"),
+      bestFor: optional(formData, "bestFor"),
+      benefits: optional(formData, "benefits"),
       isNewIn: checked(formData, "isNewIn"),
       isLimited: checked(formData, "isLimited"),
       brandId: relation(formData, "brandId"),
