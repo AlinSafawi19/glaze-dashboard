@@ -366,6 +366,16 @@ export default async function ProductsPage({
                         <dd className="font-inter text-[13px] text-black">{value}</dd>
                       </div>
                     ))}
+                    {/* The one copy field on the card. Directions are the
+                        easiest thing to forget to write, and a dash here says
+                        so without opening the editor. Clamped to two lines so a
+                        long routine cannot stretch the card past its row. */}
+                    <div className="flex gap-3">
+                      <dt className="w-[86px] shrink-0 label-sm text-brown">How to use</dt>
+                      <dd className="line-clamp-2 font-inter text-[13px] text-black">
+                        {product.howToUse?.trim() || "—"}
+                      </dd>
+                    </div>
                     <div className="flex gap-3">
                       <dt className="w-[86px] shrink-0 label-sm text-brown">Sold</dt>
                       <dd className="font-inter text-[13px] text-black tabular-nums">{sold}</dd>

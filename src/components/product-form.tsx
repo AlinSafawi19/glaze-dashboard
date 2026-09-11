@@ -29,6 +29,7 @@ export interface ProductValues {
   description: string;
   bestFor: string;
   benefits: string;
+  howToUse: string;
   isNewIn: boolean;
   isLimited: boolean;
   brandId: string;
@@ -51,6 +52,7 @@ export const EMPTY_PRODUCT: ProductValues = {
   description: "",
   bestFor: "",
   benefits: "",
+  howToUse: "",
   isNewIn: false,
   isLimited: false,
   brandId: "",
@@ -194,6 +196,18 @@ export function ProductForm({
                 className={`${INPUT_CLASS} min-h-[110px]`}
                 defaultValue={values.benefits}
                 placeholder="Deeply hydrates, softens fine lines, evens tone…"
+              />
+            </Field>
+
+            <Field
+              label="How to use"
+              hint="The steps, in order — shown under “Benefits”."
+            >
+              <textarea
+                name="howToUse"
+                className={`${INPUT_CLASS} min-h-[110px]`}
+                defaultValue={values.howToUse}
+                placeholder="Massage a pea-sized amount over damp skin, then rinse. Morning and night…"
               />
             </Field>
           </Card>

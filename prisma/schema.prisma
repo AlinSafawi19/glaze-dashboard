@@ -126,6 +126,9 @@ model Product {
   /// What the product does. Longer than `bestFor` because the shop writes it as
   /// prose or as a list, so it gets the same room as the description.
   benefits       String?    @db.Text
+  /// How to apply it — the steps, in order. Sits under `benefits` on the
+  /// storefront and gets the same room, because a routine runs to several lines.
+  howToUse       String?    @db.Text
 
   /// Units on hand.
   ///
