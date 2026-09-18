@@ -82,7 +82,6 @@ export default async function ProductsPage({
           OR: [
             { title: { contains: search, mode: "insensitive" as const } },
             { slug: { contains: search, mode: "insensitive" as const } },
-            { sku: { contains: search, mode: "insensitive" as const } },
           ],
         }
       : {}),
@@ -205,7 +204,7 @@ export default async function ProductsPage({
           </Link>
         </FilterBar>
 
-        <SearchInput placeholder="Search title, slug or SKU" />
+        <SearchInput placeholder="Search title or slug" />
       </div>
 
       {/* Stock, as a row of links rather than another dropdown: "what is out"
@@ -353,7 +352,6 @@ export default async function ProductsPage({
                     </div>
                     <p className="mt-1 font-inter text-[12px] font-light text-brown">
                       /{product.slug}
-                      {product.sku && ` · SKU ${product.sku}`}
                     </p>
                   </div>
 

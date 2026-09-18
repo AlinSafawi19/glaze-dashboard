@@ -49,7 +49,7 @@ export async function loadProductOptions(): Promise<{
  */
 export async function loadProduct(
   id: string
-): Promise<(ProductValues & { id: string; slug: string; sku: string }) | null> {
+): Promise<(ProductValues & { id: string; slug: string }) | null> {
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
@@ -70,7 +70,6 @@ export async function loadProduct(
     price: String(Number(product.price)),
     discount: String(product.discount),
     stock: product.stock === null ? "" : String(product.stock),
-    sku: product.sku ?? "",
     size: product.size ?? "",
     keyIngredients: product.keyIngredients ?? "",
     description: product.description ?? "",

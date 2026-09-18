@@ -6,7 +6,6 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireUserForAction } from "@/lib/dal";
-import { nextSku } from "@/lib/sku";
 import { uniqueSlug } from "@/lib/slug";
 import type { FormState } from "@/lib/actions/resources";
 
@@ -28,8 +27,8 @@ function relation(formData: FormData, key: string): string | null {
   return value === "" ? null : value;
 }
 
-/** Everything except the slug and the SKU, both issued once at creation. */
-type ProductFields = Omit<Prisma.ProductUncheckedCreateInput, "slug" | "sku">;
+/** Everything except the slug, which is issued once at creation. */
+type ProductFields = Omit<Prisma.ProductUncheckedCreateInput, "slug">;
 
 type Parsed =
   | { ok: true; data: ProductFields; categoryIds: string[]; skinTypeIds: string[] }
@@ -123,7 +122,6 @@ export async function createProduct(
       data: {
         ...parsed.data,
         slug: await uniqueSlug("product", parsed.data.title),
-        sku: await nextSku(),
         sortIndex: (last?.sortIndex ?? -1) + 1,
         categories: {
           create: parsed.categoryIds.map((categoryId) => ({ categoryId })),
@@ -158,7 +156,7 @@ export async function updateProduct(
   // would still reach this action, so the rule is enforced here too.
   const existing = await prisma.product.findUnique({
     where: { id },
-    select: { archivedAt: true, sku: true },
+    select: { archivedAt: true },
   });
   if (!existing) return { error: "That product no longer exists." };
   if (existing.archivedAt) {
@@ -170,12 +168,8 @@ export async function updateProduct(
     // never breaks its storefront link or the slugs saved in shoppers' carts.
     // Categories and skin types are replaced wholesale — simpler and cheaper
     // than diffing a handful of rows, and it keeps the join tables honest.
-    // A product created before SKUs were issued picks one up on its next save;
-    // one that already has a code keeps it, because paperwork quotes it.
-    const data = existing.sku ? parsed.data : { ...parsed.data, sku: await nextSku() };
-
     await prisma.$transaction([
-      prisma.product.update({ where: { id }, data }),
+      prisma.product.update({ where: { id }, data: parsed.data }),
       prisma.productCategory.deleteMany({ where: { productId: id } }),
       prisma.productCategory.createMany({
         data: parsed.categoryIds.map((categoryId) => ({ productId: id, categoryId })),

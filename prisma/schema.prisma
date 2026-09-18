@@ -111,8 +111,6 @@ model Product {
   price          Decimal    @default(0) @db.Decimal(10, 2)
   /// Canopy "Discount" — a whole percentage off, 0–100.
   discount       Int        @default(0)
-  /// Canopy "SKU"
-  sku            String?    @db.VarChar(60)
   /// Canopy "Size" — was a three-option enum; free text so the client can add a
   /// new volume from the dashboard without a migration.
   size           String?    @db.VarChar(120)

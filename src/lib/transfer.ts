@@ -3,7 +3,6 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { normaliseHeader, toCsv, type Row } from "@/lib/csv";
 import { BY_ADDED, BY_NAME } from "@/lib/resources";
-import { skuIssuer } from "@/lib/sku";
 import { uniqueSlug } from "@/lib/slug";
 import { taxonomyDelegate } from "@/lib/taxonomy-delegate";
 import { toXlsx, type XlsxDropdown } from "@/lib/xlsx";
@@ -31,9 +30,9 @@ export interface TransferSpec {
   headers: string[];
   /**
    * Import columns: `headers` minus everything the dashboard owns — the
-   * generated slug and SKU, and the image URLs, which come from the uploader.
-   * The template does not offer them, and the importer ignores them if a
-   * hand-made file carries them anyway.
+   * generated slug and the image URLs, which come from the uploader. The
+   * template does not offer them, and the importer ignores them if a hand-made
+   * file carries them anyway.
    */
   importHeaders: string[];
   /** One filled-in row, so the sample file shows the expected shape. */
@@ -49,7 +48,7 @@ export interface TransferSpec {
  * It stays named here so a hand-made file that still carries one has it
  * ignored rather than obeyed.
  */
-const DASHBOARD_OWNED = ["Slug", "Cover img 1", "Img 2", "Img 3", "Img 4", "SKU"];
+const DASHBOARD_OWNED = ["Slug", "Cover img 1", "Img 2", "Img 3", "Img 4"];
 
 const forImport = (headers: string[]): string[] =>
   headers.filter((header) => !DASHBOARD_OWNED.includes(header));
@@ -72,7 +71,6 @@ const PRODUCT_COLUMNS = [
   "Img 4",
   "Price",
   "Discount",
-  "SKU",
   "Stock",
   "Size",
   "Key Ingredients",
@@ -162,7 +160,7 @@ export const TRANSFERS: Record<TransferKey, TransferSpec> = {
       "New in and Limited are yes/no dropdowns. A file written by hand may use true/false or 1/0 instead.",
       "Discount is a percentage off the price. Any product above 0 shows in the storefront's Offers section, so there is no collection to file it under.",
       "Stock is the number of units on hand. Leave the cell empty not to track that product — it never shows as sold out and never blocks a checkout.",
-      "The slug and the SKU are issued automatically — there is nothing to fill in.",
+      "The slug is issued automatically — there is nothing to fill in.",
       "Images are uploaded on the product's own page; an import never touches them.",
       "A row whose title already exists updates that product instead of adding a second.",
     ],
@@ -195,7 +193,6 @@ async function productSheet(): Promise<{ headers: string[]; rows: Row[] }> {
       "Img 4": product.image4 ?? "",
       Price: String(Number(product.price)),
       Discount: String(product.discount),
-      SKU: product.sku ?? "",
       // Blank means untracked, which is what an empty cell imports back as.
       Stock: product.stock === null ? "" : String(product.stock),
       Size: product.size ?? "",
@@ -490,10 +487,6 @@ async function importProducts(
   const collectionIndex = lookupIndex(collections);
   const skinTypeIndex = lookupIndex(skinTypes);
 
-  // Codes are handed out from one pass over the existing ones, so a file of
-  // hundreds of new products does not re-read the table for every row.
-  const issueSku = await skuIssuer();
-
   /** Resolves one relation, reporting an unknown name rather than creating it. */
   function resolve(
     index: Map<string, string>,
@@ -583,19 +576,14 @@ async function importProducts(
     try {
       const existing = await prisma.product.findFirst({
         where: { title: { equals: title, mode: "insensitive" }, archivedAt: null },
-        select: { id: true, sku: true },
+        select: { id: true },
       });
 
       if (existing) {
         // Both lists are replaced wholesale rather than diffed: the row in the
         // file is the whole truth about what that product is filed under.
         await prisma.$transaction([
-          prisma.product.update({
-            where: { id: existing.id },
-            // A product from before SKUs were issued picks one up here; one that
-            // already has a code keeps it, because paperwork quotes it.
-            data: existing.sku ? data : { ...data, sku: issueSku() },
-          }),
+          prisma.product.update({ where: { id: existing.id }, data }),
           prisma.productCategory.deleteMany({ where: { productId: existing.id } }),
           prisma.productCategory.createMany({
             data: categoryIds.map((categoryId) => ({ productId: existing.id, categoryId })),
@@ -617,7 +605,6 @@ async function importProducts(
           data: {
             ...data,
             slug: await uniqueSlug("product", title),
-            sku: issueSku(),
             sortIndex: (last?.sortIndex ?? -1) + 1,
             categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
             skinTypes: { create: skinTypeIds.map((skinTypeId) => ({ skinTypeId })) },

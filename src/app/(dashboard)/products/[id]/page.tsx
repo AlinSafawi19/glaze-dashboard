@@ -24,16 +24,7 @@ export default async function EditProductPage({
       <PageHeader
         title={product.title}
         subtitle={
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <CopyableText value={`/products/${product.slug}`} label="storefront path" />
-            {product.sku && (
-              <CopyableText
-                value={`SKU ${product.sku}`}
-                copyValue={product.sku}
-                label="SKU"
-              />
-            )}
-          </span>
+          <CopyableText value={`/products/${product.slug}`} label="storefront path" />
         }
       />
       <ProductForm
