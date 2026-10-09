@@ -82,7 +82,7 @@ the bucket out is a deliberate chore, not a side effect of an edit.
 
 | | |
 | --- | --- |
-| `npm run dev` / `build` / `start` | Next.js, port 3002 |
+| `npm run dev` / `build` / `start` | Next.js, port 3002. `start` applies pending migrations first and won't boot if one fails |
 | `npm run lint` / `typecheck` | ESLint · `tsc --noEmit` |
 | `npm run db:up` / `db:down` | Start / stop the Postgres container |
 | `npm run db:migrate` / `db:deploy` | New migration (dev) · apply existing (deploy) |
