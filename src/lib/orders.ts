@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
+import { getDeliveryFee } from "@/lib/delivery";
 import { REFERENCE_ATTEMPTS, newOrderReference } from "@/lib/order-reference";
 
 /**
@@ -50,7 +51,8 @@ export class CheckoutError extends Error {}
  * Turns a checkout payload into an order.
  *
  * Prices are re-read from the catalogue rather than taken from the request —
- * the posted `Total` is only used to warn about drift, never to charge.
+ * the posted `Total` is only used to warn about drift, never to charge. The
+ * delivery fee is the server's too, and is part of the total.
  *
  * `customerId` comes from a verified session token, never from the body, so a
  * caller cannot file an order against somebody else's account. It stays
@@ -113,7 +115,9 @@ export async function placeOrder(
     };
   });
 
-  const total = lines.reduce((sum, l) => sum + Number(l.unitPrice) * l.quantity, 0);
+  const subtotal = lines.reduce((sum, l) => sum + Number(l.unitPrice) * l.quantity, 0);
+  const deliveryFee = await getDeliveryFee();
+  const total = subtotal + deliveryFee;
 
   const claimed = input.Total === undefined ? null : Number(input.Total);
   if (claimed !== null && Number.isFinite(claimed) && Math.abs(claimed - total) > 0.01) {
@@ -126,7 +130,7 @@ export async function placeOrder(
   // The unique index is the authority; this just tries again when it fires.
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await createOrder(input, customerId, accountEmail, lines, total);
+      return await createOrder(input, customerId, accountEmail, lines, total, deliveryFee);
     } catch (error) {
       if (attempt >= REFERENCE_ATTEMPTS || !isDuplicateReference(error)) throw error;
     }
@@ -179,7 +183,8 @@ function createOrder(
   customerId: string | null,
   accountEmail: string | null,
   lines: OrderLine[],
-  total: number
+  total: number,
+  deliveryFee: number
 ) {
   const tracked = lines.filter((line) => line.tracked);
 
@@ -208,6 +213,7 @@ function createOrder(
         payment: input.Payment || "Cash on delivery",
         email: input.Email || accountEmail,
         total: total.toFixed(2),
+        deliveryFee: deliveryFee.toFixed(2),
         customerId,
         // Only worth recording when there is something to give back.
         stockTaken: tracked.length > 0,
@@ -220,6 +226,7 @@ function createOrder(
         number: true,
         reference: true,
         total: true,
+        deliveryFee: true,
         createdAt: true,
         name: true,
         phone: true,

@@ -14,6 +14,7 @@ import {
   type AuthState,
 } from "@/lib/actions/auth";
 import { createApiKey, type KeyState } from "@/lib/actions/api-keys";
+import { updateDeliveryFee, type DeliveryFeeState } from "@/lib/actions/settings";
 
 function Notice({ tone, children }: { tone: "error" | "ok"; children: React.ReactNode }) {
   return (
@@ -129,6 +130,62 @@ export function EmailForm({ current }: { current: string }) {
             </>
           ) : (
             "Update email"
+          )}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+/**
+ * The flat fee every order pays for delivery. Checkout charges it and the
+ * storefront's cart shows it, both read from here, so there is one number to
+ * change. Orders already placed keep the fee they were charged.
+ */
+export function DeliveryFeeForm({ current }: { current: string }) {
+  const [state, action, pending] = useActionState<DeliveryFeeState, FormData>(
+    updateDeliveryFee,
+    {}
+  );
+
+  return (
+    <Card className="flex flex-col gap-5 p-6">
+      <div>
+        <h2 className="text-[18px] leading-[1.3]">Delivery fee</h2>
+        <p className="mt-0.5 font-inter text-[14px] font-light italic text-brown">
+          Added to every order, and shown in the storefront&apos;s cart and checkout. Orders
+          already placed keep the fee they were charged.
+        </p>
+      </div>
+
+      <form action={action} className="flex max-w-sm flex-col gap-4">
+        <Field label="Fee ($)">
+          <input
+            className={INPUT_CLASS}
+            name="deliveryFee"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            max="1000"
+            step="0.01"
+            defaultValue={current}
+            required
+          />
+        </Field>
+
+        {state.error && <Notice tone="error">{state.error}</Notice>}
+        {state.saved !== undefined && (
+          <Notice tone="ok">Delivery fee set to ${state.saved}.</Notice>
+        )}
+
+        <Button type="submit" disabled={pending}>
+          {pending ? (
+            <>
+              <Loader size={14} />
+              Saving…
+            </>
+          ) : (
+            "Save fee"
           )}
         </Button>
       </form>

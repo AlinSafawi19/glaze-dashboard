@@ -151,6 +151,7 @@ export const COLLECTIONS: Record<string, CollectionSpec> = {
       { name: "Notes", type: "text" },
       { name: "Payment", type: "text" },
       { name: "Total", type: "number" },
+      { name: "DeliveryFee", type: "number" },
       { name: "Items", type: "text" },
     ],
   },

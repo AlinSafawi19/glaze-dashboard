@@ -7,7 +7,8 @@ import { Badge, Card, PageHeader, Table, Td, Th } from "@/components/ui";
 import { revokeApiKey } from "@/lib/actions/api-keys";
 import { requireUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
-import { EmailForm, NewKeyForm, PasswordForm } from "./settings-forms";
+import { getDeliveryFee } from "@/lib/delivery";
+import { DeliveryFeeForm, EmailForm, NewKeyForm, PasswordForm } from "./settings-forms";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -31,6 +32,7 @@ export default async function SettingsPage() {
   const keys = isOwner
     ? await prisma.apiKey.findMany({ orderBy: { createdAt: "desc" } })
     : [];
+  const deliveryFee = isOwner ? await getDeliveryFee() : null;
 
   return (
     <>
@@ -87,6 +89,8 @@ export default async function SettingsPage() {
           <EmailForm current={user.email} />
           <PasswordForm />
         </div>
+
+        {deliveryFee !== null && <DeliveryFeeForm current={String(deliveryFee)} />}
 
         {isOwner && (
           <Card className="flex flex-col gap-5 p-6">

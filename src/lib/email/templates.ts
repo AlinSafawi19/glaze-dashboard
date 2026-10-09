@@ -32,6 +32,8 @@ export interface OrderEmailData {
   notes?: string | null;
   payment: string;
   total: string;
+  /** Included in `total`; listed on its own line above it. */
+  deliveryFee: string;
   items: LineItem[];
 }
 
@@ -47,7 +49,7 @@ export function orderPlacedOwner(order: OrderEmailData, to: string): OutgoingEma
       eyebrow: "New order",
       heading: `${order.reference} — ${order.name}`,
       body: [
-        itemsTable(order.items, order.total),
+        itemsTable(order.items, order.total, order.deliveryFee),
         heading("Deliver to"),
         definitionList([
           ["Name", order.name],
@@ -79,7 +81,7 @@ export function orderPlacedCustomer(order: OrderEmailData, to: string): Outgoing
       body: [
         paragraph("Your order is in and we are getting it ready for delivery."),
         heading("What you ordered"),
-        itemsTable(order.items, order.total),
+        itemsTable(order.items, order.total, order.deliveryFee),
         heading("Delivering to"),
         definitionList([
           ["Address", order.address],
@@ -159,7 +161,7 @@ export function orderStatusChanged(
       body: [
         paragraph(`${firstName}, ${copy.body.charAt(0).toLowerCase()}${copy.body.slice(1)}`),
         heading("What you ordered"),
-        itemsTable(order.items, order.total),
+        itemsTable(order.items, order.total, order.deliveryFee),
         // Where it is going matters while it is still coming; once it has
         // arrived or been called off, repeating the address is just noise.
         ...(status === "SHIPPED" || status === "CONFIRMED"

@@ -36,6 +36,7 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
       payment: true,
       email: true,
       total: true,
+      deliveryFee: true,
       stockTaken: true,
       items: {
         select: { title: true, quantity: true, unitPrice: true, productId: true },
@@ -95,6 +96,7 @@ export async function setOrderStatus(id: string, status: OrderStatus): Promise<v
         notes: order.notes,
         payment: order.payment,
         total: String(Number(order.total)),
+        deliveryFee: String(Number(order.deliveryFee)),
         items: order.items.map((item) => ({
           title: item.title,
           quantity: item.quantity,

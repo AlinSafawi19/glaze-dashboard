@@ -137,6 +137,7 @@ export async function POST(
       payment: order.payment,
       email: order.email,
       total: String(Number(order.total)),
+      deliveryFee: String(Number(order.deliveryFee)),
       items: order.items.map((item) => ({
         title: item.title,
         quantity: item.quantity,
@@ -150,6 +151,7 @@ export async function POST(
           id: order.id,
           Reference: order.reference,
           Total: String(Number(order.total)),
+          DeliveryFee: String(Number(order.deliveryFee)),
           Created: order.createdAt.toISOString(),
         },
       },

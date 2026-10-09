@@ -131,6 +131,26 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   </Td>
                 </tr>
               ))}
+              {/* Orders from before delivery was charged carry zero, and their
+                  total is just the lines — no breakdown to show. */}
+              {Number(order.deliveryFee) > 0 && (
+                <>
+                  <tr>
+                    <Td colSpan={3} className="text-right text-muted">
+                      Subtotal
+                    </Td>
+                    <Td className="text-right text-muted">
+                      ${Math.round((Number(order.total) - Number(order.deliveryFee)) * 100) / 100}
+                    </Td>
+                  </tr>
+                  <tr>
+                    <Td colSpan={3} className="text-right text-muted">
+                      Delivery
+                    </Td>
+                    <Td className="text-right text-muted">${Number(order.deliveryFee)}</Td>
+                  </tr>
+                </>
+              )}
               <tr>
                 <Td colSpan={3} className="text-right font-medium">
                   Total

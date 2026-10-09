@@ -225,8 +225,12 @@ export interface LineItem {
   unitPrice: string;
 }
 
-/** The order lines and their total. */
-export function itemsTable(items: LineItem[], total: string): string {
+/**
+ * The order lines and their total. With a delivery fee, the lines are summed
+ * into a subtotal and the fee gets its own row, so the total adds up on the
+ * page. Orders from before the fee existed carry zero and skip both rows.
+ */
+export function itemsTable(items: LineItem[], total: string, deliveryFee = "0"): string {
   const rows = items
     .map(
       (item) => `
@@ -240,9 +244,19 @@ export function itemsTable(items: LineItem[], total: string): string {
     )
     .join("");
 
+  const fee = Number(deliveryFee);
+  const subtotal = items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
+  const summary = (label: string, value: string) => `
+      <tr>
+        <td style="padding:14px 0 0;font-family:${FONT};font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:${MUTED};">${label}</td>
+        <td style="padding:14px 0 0;font-family:${FONT};font-size:15px;color:${INK};text-align:right;white-space:nowrap;">${value}</td>
+      </tr>`;
+  const breakdown = fee > 0 ? summary("Subtotal", money(subtotal)) + summary("Delivery", money(fee)) : "";
+
   return `
     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:6px;">
       ${rows}
+      ${breakdown}
       <tr>
         <td style="padding:18px 0 0;font-family:${FONT};font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:${MUTED};">Total</td>
         <td style="padding:18px 0 0;font-family:${SERIF};font-size:22px;color:${INK};text-align:right;white-space:nowrap;">${money(total)}</td>

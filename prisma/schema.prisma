@@ -276,8 +276,12 @@ model Order {
   /// and kept on the order itself so it survives the account being deleted.
   email   String? @db.VarChar(255)
 
-  /// Order total in store currency, frozen at checkout.
+  /// What the courier collects: the lines plus `deliveryFee`, frozen at checkout.
   total  Decimal     @db.Decimal(10, 2)
+  /// Delivery charged on this order, frozen at checkout so a later change to
+  /// the fee does not rewrite what an old order cost. Zero on orders placed
+  /// before delivery was charged.
+  deliveryFee Decimal @default(0) @db.Decimal(10, 2)
   status OrderStatus @default(PENDING)
 
   /// Whether this order is currently holding stock.
@@ -539,3 +543,19 @@ model ApiKey {
   @@index([keyHash])
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Store settings
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Shop-wide values the owner edits from Settings. One row, always `id =
+/// "store"`: the migration creates it, and reads fall back to creating it so a
+/// fresh database never fails a checkout over a missing row.
+model StoreSettings {
+  id          String   @id @default("store") @db.VarChar(16)
+  /// Flat delivery fee added to every order, in store currency. Orders copy it
+  /// into `Order.deliveryFee` at checkout, so changing it never rewrites what
+  /// an old order cost. The storefront reads it from `/api/v1/glaze/settings`.
+  deliveryFee Decimal  @default(4) @db.Decimal(10, 2)
+  updatedAt   DateTime @updatedAt
+}
